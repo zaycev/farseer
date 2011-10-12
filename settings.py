@@ -1,0 +1,1 @@
+# -*- coding: utf-8 -*import collector.core as coreUSR_APPS = []USR_CONF = \'''	sys.tasks -> sys.workers -> sys.console'''SYS_TASKS = (	 core.ExampleTask("task 1"),	 core.ExampleTask("task 2"),	 core.ExampleTask("task 3"),	 core.ExampleTask("task 4"),	 core.ExampleTask("task 5"),)
