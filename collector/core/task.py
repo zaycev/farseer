@@ -20,8 +20,7 @@ class Task(object):
 		self.data = self.pb()
 		self.data.ParseFromString(state)
 
-	@staticmethod
-	def __verify_result__(result):
+	def is_correct(self):
 		return True
 		
 	def __unicode__(self):

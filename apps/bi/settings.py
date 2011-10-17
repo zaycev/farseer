@@ -1,1 +1,1 @@
-# -*- coding: utf-8 -*-HUB_URI_PATTERN = u"http://www.businessinsider.com/?page={0}"
+# -*- coding: utf-8 -*-import apps.bi as biAPPS = {	"namespace": "bi",	"apps": [		bi.BiHubUriFormer,	    bi.BiHubDownloader,	],}

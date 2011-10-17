@@ -4,8 +4,9 @@ import collector.core as core
 CORE_APPS = {
 	"namespace": "sys",
 	"apps": [
-		("console", core.Console),
-		("store", core.SimpleStore),
-		("workers", core.Worker),
+		core.Console,
+		core.SimpleStore,
+		core.Worker,
+	    core.TaskBootstraper,
 	],
 }
