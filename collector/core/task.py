@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-import json
-import unittest
-
 from protobuff_pb2 import Task as PbTask
 from protobuff_pb2 import ExampleTask as PbExampleTask
 
@@ -22,6 +19,10 @@ class Task(object):
 	def __setstate__(self, state):
 		self.data = self.pb()
 		self.data.ParseFromString(state)
+
+	@staticmethod
+	def __verify_result__(result):
+		return True
 		
 	def __unicode__(self):
 		return u"{0}".format(self.name)
