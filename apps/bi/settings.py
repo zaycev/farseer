@@ -1,1 +1,1 @@
-# -*- coding: utf-8 -*-import apps.bi as biAPPS = {	"namespace": "bi",	"apps": [		bi.BiHubUriFormer,	    bi.BiHubDownloader,	],}
+# -*- coding: utf-8 -*-import apps.bi as biAPPS = {	"namespace": "bi",	"apps": [		bi.BiHubUriFormer,	    bi.BiHubDownloader,	    bi.SimpleFileWriter,	],}
