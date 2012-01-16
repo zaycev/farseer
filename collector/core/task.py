@@ -1,24 +1,29 @@
 # -*- coding: utf-8 -*-
-from protobuff_pb2 import Task as PbTask
-from protobuff_pb2 import ExampleTask as PbExampleTask
+from collector_pb2 import Job
+from collector_pb2 import JobMeta
+from collector_pb2 import JobExample
 
-from datetime import datetime as DT
+import time as T
 
 class Task(object):
 	name = "sys.task.base"
-	pb = PbTask
-
-	def __init__(self, **kwargs):
-		self.data = self.pb()
-		self.data.meta.time = str(DT.now())
-		self.data.meta.name = self.name
+	jobt = Job
+	# sql = None
+	
+	def __init__(self, job_proto=None):
+		time = T.time() + T.timezone
+		self.job = self.jobt()
+		if job_proto:
+			self.job.CopyFrom(job_proto)
+		meta = JobMeta(time=time, name=self.name)
+		self.job.meta.CopyFrom(meta)
 
 	def __getstate__(self):
-		return self.data.SerializeToString()
+		return self.job.SerializeToString()
 	
 	def __setstate__(self, state):
-		self.data = self.pb()
-		self.data.ParseFromString(state)
+		self.job = self.jobt()
+		self.job.ParseFromString(state)
 
 	def is_correct(self):
 		return True
@@ -28,12 +33,7 @@ class Task(object):
 	
 	def __str__(self):
 		return self.__unicode__()
-
-class ExampleTask(Task):
+	
+class TaskExample(Task):
 	name = "sys.task.example"
-	pb = PbExampleTask
-
-	def __init__(self, text=None):
-		super(ExampleTask, self).__init__()
-		if text:
-			self.data.text = text
+	jobt = JobExample

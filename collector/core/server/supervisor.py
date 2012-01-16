@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import time
-from collector.core.task import ExampleTask
 from collector.core.server.service import Service
 from collector.core.server.confparser import Namespace
 from collector.core.server.confparser import Workflow

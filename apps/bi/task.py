@@ -1,51 +1,40 @@
 # -*- coding: utf-8 -*-
+import time
+import datetime
+
 from collector.core.task import Task
-from apps.bi.bi_pb2 import BiFormHubUriTask as PbBiFormHubUriTask
-from apps.bi.bi_pb2 import BiHubDwTask as PbBiHubDwTask
-from apps.bi.bi_pb2 import BiTopicDwTask as PbBiTopicDwTask
-from apps.bi.bi_pb2 import BiHubParseTask as PbBiHubParseTask
 
+from apps.bi.protocol_pb2 import DataAuthor
+from apps.bi.protocol_pb2 import DataComment
 
-class BiFormHubUriTask(Task):
-	name = "task.hub_addr"
-	pb = PbBiFormHubUriTask
+from apps.bi.protocol_pb2 import JobHubRange
+from apps.bi.protocol_pb2 import JobHubUri
+from apps.bi.protocol_pb2 import JobRawHub
+from apps.bi.protocol_pb2 import JobRawTopic
+
+class TaskHubRange(Task):
+	name = "task.hub_range"
+	jobt = JobHubRange
 	
-	def __init__(self, **kwargs):
-		super(BiFormHubUriTask, self).__init__()
-		self.data.f = kwargs.get("f")
-		self.data.t = kwargs.get("t")
+	def __init__(self, *args, **kwargs):
+		super(TaskHubRange, self).__init__()
+		if "f" in kwargs and "t" in kwargs:
+			self.job.f = kwargs["f"]
+			self.job.t = kwargs["t"]
+		if "sample" in kwargs:
+			for number in kwargs["sample"]:
+				self.job.sample.append(number)
+
+class TaskHubUri(Task):
+	name = "task.hub_uri"
+	jobt = JobHubUri
 
 
-class BiHubDwTask(Task):
-	name = "task.hub_dw"
-	pb = PbBiHubDwTask
-	
-	def __init__(self, **kwargs):
-		super(BiHubDwTask, self).__init__()
-		self.data.uri = kwargs.get("uri")
+class TaskRawHub(Task):
+	name = "task.hub_raw"
+	jobt = JobRawHub
 
 
-class BiHubParseTask(Task):
-	name = "task.hub_parse"
-	pb = PbBiHubParseTask
-
-	def __init__(self, **kwargs):
-		super(BiHubParseTask, self).__init__()
-		self.data.html = kwargs.get("html")
-
-
-class BiTopicDwTask(Task):
-	name = "task.topic_dw"
-	pb = PbBiTopicDwTask
-
-	def __init__(self, **kwargs):
-		super(BiTopicDwTask, self).__init__()
-		self.data.uri = kwargs.get("uri")
-		self.data.title = kwargs.get("title")
-		self.data.time = kwargs.get("time")
-		self.data.short_text = kwargs.get("short_text")
-		self.data.views = kwargs.get("views")
-		self.data.comments = kwargs.get("comments")
-		self.data.image = kwargs.get("image")
-		self.data.author = kwargs.get("author")
-		self.data.response = kwargs.get("response")
+class TaskRawTopic(Task):
+	name = "task.topic_raw"
+	jobt = JobRawTopic
