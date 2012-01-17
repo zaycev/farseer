@@ -50,17 +50,17 @@ class Task(object):
 		return self.__unicode__()
 
 	def __columns__(self):
-		col = []
-
-	def task_columns(task):
 		cols=[Column('id', Integer, primary_key=True)]
-		for field_descr, _ in task.job.ListFields:
+		for field_descr, _ in self.job.ListFields():
 			sql_type = PROTOBUFF_SQL_MAP[field_descr.type]
 			if sql_type != None:
 				cols.append(Column(field_descr.name, sql_type, primary_key=False))
 		return cols
 
-	
+	def copy_to(self, object):
+		for field_descr, val in self.job.ListFields():
+			setattr(object, field_descr.name, val)
+
 class TaskExample(Task):
 	name = "sys.task.example"
 	jobt = JobExample

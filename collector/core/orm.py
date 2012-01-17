@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 from google.protobuf.descriptor import FieldDescriptor
 
-from sqlalchemy.engine.url import URL
+from sqlalchemy import Integer, Text, Float, Boolean, Binary, MetaData
 from sqlalchemy import create_engine
-from sqlalchemy import Integer, Text, Float, Boolean, Binary
+from sqlalchemy.orm import create_session
+from sqlalchemy.engine.url import URL
 
 from collector.core.server.service import Worker
 from collector.core.server.service import Service
+from settings2 import ORM_CONFIG
 
 PROTOBUFF_SQL_MAP = {
 	FieldDescriptor.TYPE_BOOL: Boolean,
@@ -26,36 +28,32 @@ PROTOBUFF_SQL_MAP = {
 	FieldDescriptor.TYPE_UINT64: Integer,
 }
 
-ORM_CONFIG = {
-	"DB_DRIVER": "postgresql+psycopg2",
-	"DB_USER": "farseer",
-	"DB_PASSWORD": "farseer",
-	"DB_HOST": "localhost",
-	"DB_PORT": "5432",
-	"DB_DATABASE": "bi-1",
-}
-
-
 class TaskWriter(Worker):
 	name = "worker.task_writer"
 
 class SqlWriter(Worker):
 	name = "worker.sql_writer"
 
-	def __after_init__(self, mailbox, **kwargs):
-		url = "postgresql+psycopg2://farseer:farseer@localhost/bi-1"
-#		url = URL(
-#			ORM_CONFIG["DB_DRIVER"],
-#			username=ORM_CONFIG["DB_USER"],
-#			password=ORM_CONFIG["DB_PASSWORD"],
-#			host=["DB_HOST"],
-#			port=ORM_CONFIG["DB_PORT"],
-#			database=ORM_CONFIG["DB_DATABASE"]
-#		)
+	def __before_start__(self, mailbox, **kwargs):
+		url = URL(
+			ORM_CONFIG["DB_DRIVER"],
+			username=ORM_CONFIG["DB_USER"],
+			password=ORM_CONFIG["DB_PASSWORD"],
+			host=ORM_CONFIG["DB_HOST"],
+			port=ORM_CONFIG["DB_PORT"],
+			database=ORM_CONFIG["DB_DATABASE"]
+		)
 		mailbox.db_engine = create_engine(url)
+		mailbox.db_metadata = MetaData(bind=mailbox.db_engine)
+		self.__init_mapper__(mailbox)
+
+	def __init_mapper__(self, mailbox):
+		pass
 
 	class Mailbox(Service.Mailbox):
 		def __init__(self, owner, **kwargs):
 			super(SqlWriter.Mailbox, self).__init__(owner, **kwargs)
 			self.db_engine = None
 			self.db_session = None
+			self.db_metadata = None
+			self.db_tabs = {}

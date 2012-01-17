@@ -216,41 +216,31 @@ class WkTopicParser(WkParser):
 		full_text = ""
 		for el in content_el:
 			if el.tag in ["p", "ul", "ol", "strong"]:
-				# print "+++ {0}".format(el.tag)
-				# print el.text_content()
-				# print("\n\n\n\n")
 				full_text = "".join([full_text, el.text_content()])
 
 		task.job.full_text = full_text
 		return [task]
 
-
-#from sqlalchemy.schema import Column
-#from sqlalchemy.types import Integer
-#from sqlalchemy.types import Float
-#from sqlalchemy.types import Text
-#from sqlalchemy import MetaData, Table
-#from sqlalchemy.orm import mapper, create_session
-#from google.protobuf.descriptor import FieldDescriptor
-#
-#def create_colums(task):
-#	cols=[Column('id', Integer, primary_key=True)]
-#	for field_descr, _ in task.job.ListFields:
-#		if field_descr.type == FieldDescriptor.TYPE_FLOAT:
-#			col = Column(field_descr.name, Float)
-#		elif field_descr.type == FieldDescriptor.TYPE_INT32:
-#			col = Column(field_descr.name, Integer)
-#		elif field_descr.type == FieldDescriptor.TYPE_STRING:
-#			col = Column(field_descr.name, Text)
-#		cols.append(col)
-#	return cols
+from sqlalchemy import Table
+from sqlalchemy.orm import mapper, create_session
 
 class WkTopicSqlWriter(SqlWriter):
 	name = "worker.topic_sql_writer"
+
+	class SqlTmp(object):
+		pass
+
 	def __target__(self, task, **kwargs):
-#		mailbox = kwargs["mailbox"]
-#		print task
-#		columns = create_colums(task)
-#		metadata = MetaData(bind=task.jobt)
-#		t = Table(task.name, metadata, **cols)
-		retuen []
+		pass
+		mailbox = kwargs["mailbox"]
+		if task.name not in mailbox.db_tabs:
+			t = Table(task.name, mailbox.db_metadata, *task.__columns__())
+			mapper(WkTopicSqlWriter.SqlTmp, t)
+			mailbox.db_tabs[task.name] = t
+			mailbox.db_session = create_session(bind=mailbox.db_engine,
+				autocommit=False, autoflush=True)
+		tmp = WkTopicSqlWriter.SqlTmp()
+		task.copy_to(tmp)
+		mailbox.db_session.add(tmp)
+		mailbox.db_session.commit()
+		return []
