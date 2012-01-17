@@ -34,7 +34,7 @@ class WkSocicalDataFetcher(WkUrlFetcher):
 	name = "worker.abstract_social_fetcher"
 	template = None
 	
-	def __target__(self, task):
+	def __target__(self, task, **kwargs):
 		pass
 		#uri = task.job.uri
 
@@ -57,6 +57,6 @@ class WkScFetcher(WkUrlFetcher):
 
 class DirectDbWriter(Worker):
 	
-	def __target__(self, task):
+	def __target__(self, task, **kwargs):
 		# sql_writeble = task.sql()
 		pass

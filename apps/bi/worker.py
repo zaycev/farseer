@@ -10,6 +10,7 @@ from lxml.html.clean import clean_html
 from collector.core import Worker
 from collector.core import Task
 from collector.core import WkUrlFetcher
+from collector.core.orm import SqlWriter
 
 from apps.bi.protocol_pb2 import DataAuthor
 from apps.bi.protocol_pb2 import DataComment
@@ -47,7 +48,7 @@ class WkHubUriFormer(Worker):
 			return self.template.format(page_num)
 		return None
 
-	def __target__(self, task):
+	def __target__(self, task, **kwargs):
 		hub_uri_list = []
 		if not(task.job.f and task.job.t) and not task.job.sample:
 			raise Exception("{0}: wrong args".format(self.name))
@@ -73,7 +74,7 @@ class WkHubUriFormer(Worker):
 class WkHubFetcher(WkUrlFetcher):
 	name = "worker.hub_fetcher"
 	
-	def __target__(self, task):
+	def __target__(self, task, **kwargs):
 		html = self.fetch_html(task.job.uri)
 		return [TaskRawHub(JobRawHub(html=html))]
 
@@ -154,8 +155,8 @@ class WkHubParser(WkParser):
 						return 0
 		return 0
 		
-	def __target__(self, task):
-		
+	def __target__(self, task, **kwargs):
+
 		html = task.job.html
 		hub_doc = document_fromstring(html)
 		river = hub_doc.find_class("river")[0]
@@ -175,8 +176,7 @@ class WkHubParser(WkParser):
 				comments = self.extract_comments(post_et)
 				views = self.extract_views(post_et)
 				authors = self.extract_author(post_et)
-				
-				
+
 				new_job = JobRawTopic(
 					uri = post_uri,
 					title = title,
@@ -186,21 +186,22 @@ class WkHubParser(WkParser):
 					views = views,
 					time = time,
 				)
-				
+
 				for uri, name in authors:
 					new_author = new_job.authors.add()
 					new_author.name = name
 					new_author.uri = uri
 					new_author.type = DataAuthor.TOPIC
-				
+
 				tasks.append(TaskRawTopic(new_job))
+
 		return tasks
-		
+
 		
 class WkTopicFetcher(WkUrlFetcher):
 	name = "worker.topic_fetcher"
 	
-	def __target__(self, task):
+	def __target__(self, task, **kwargs):
 		html = self.fetch_html(task.job.uri)
 		task.job.html = html
 		return [task]
@@ -208,7 +209,7 @@ class WkTopicFetcher(WkUrlFetcher):
 class WkTopicParser(WkParser):
 	name = "worker.topic_parser"
 		
-	def __target__(self, task):
+	def __target__(self, task, **kwargs):
 		html = clean_html(task.job.html)
 		hub_doc = document_fromstring(html)
 		content_el = hub_doc.find_class("KonaBody post-content")[0]
@@ -221,34 +222,35 @@ class WkTopicParser(WkParser):
 				full_text = "".join([full_text, el.text_content()])
 
 		task.job.full_text = full_text
-
-		print task
-
-		return []
-
-# class SimpleFileWriter(Worker):
-# 	name = "worker.f_writer"
-# 	file_pattern = u"/tmp/bi/{0}.gpt"
-# 	@staticmethod
-# 	def __target__(task):
-# 		f = open(SimpleFileWriter.file_pattern.format(task.job.meta.time), mode="w")
-# 		f.write(task.__getstate__())
-# 		f.close()
-# 		return []
+		return [task]
 
 
+#from sqlalchemy.schema import Column
+#from sqlalchemy.types import Integer
+#from sqlalchemy.types import Float
+#from sqlalchemy.types import Text
+#from sqlalchemy import MetaData, Table
+#from sqlalchemy.orm import mapper, create_session
+#from google.protobuf.descriptor import FieldDescriptor
+#
+#def create_colums(task):
+#	cols=[Column('id', Integer, primary_key=True)]
+#	for field_descr, _ in task.job.ListFields:
+#		if field_descr.type == FieldDescriptor.TYPE_FLOAT:
+#			col = Column(field_descr.name, Float)
+#		elif field_descr.type == FieldDescriptor.TYPE_INT32:
+#			col = Column(field_descr.name, Integer)
+#		elif field_descr.type == FieldDescriptor.TYPE_STRING:
+#			col = Column(field_descr.name, Text)
+#		cols.append(col)
+#	return cols
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+class WkTopicSqlWriter(SqlWriter):
+	name = "worker.topic_sql_writer"
+	def __target__(self, task, **kwargs):
+#		mailbox = kwargs["mailbox"]
+#		print task
+#		columns = create_colums(task)
+#		metadata = MetaData(bind=task.jobt)
+#		t = Table(task.name, metadata, **cols)
+		retuen []

@@ -1,1 +1,1 @@
-# -*- coding: utf-8 -*-import apps.bi as biAPPS = {	"namespace": "bi",	"apps": [		bi.WkHubUriFormer,	    bi.WkHubFetcher,	    bi.WkHubParser,		bi.WkTopicFetcher,		bi.WkTopicParser,	],}
+# -*- coding: utf-8 -*-import apps.bi as biAPPS = {	"namespace": "bi",	"apps": [		bi.WkHubUriFormer,	    bi.WkHubFetcher,	    bi.WkHubParser,		bi.WkTopicFetcher,		bi.WkTopicParser,		bi.WkTopicSqlWriter,	],}
