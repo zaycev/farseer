@@ -101,7 +101,6 @@ class WkHubParser(WkParser):
 		return authors
 
 	def extract_title(self, post_et):
-		title_div = None
 		try:
 			title_div = self.find_class(post_et,"river-post yui-u")[0]
 		except:
@@ -154,23 +153,20 @@ class WkHubParser(WkParser):
 							return int(text)
 						return 0
 		return 0
-		
-	def __target__(self, task, **kwargs):
 
+	def __target__(self, task, **kwargs):
 		html = task.job.html
 		hub_doc = document_fromstring(html)
 		river = hub_doc.find_class("river")[0]
 		tasks = []
-		
+
 		for post_et in river:
-			
 			tag = post_et.tag
 			cls = post_et.attrib.get("class", [])
-			
+
 			if tag == "div" and ("yui-gd" in cls or "river-post" in cls):
-				
 				post_uri, title = self.extract_title(post_et)
-				time = self.extract_time(post_et)
+				post_time = self.extract_time(post_et)
 				image_uri = self.extract_image_uri(post_et)
 				short_text = self.extract_short_text(post_et)
 				comments = self.extract_comments(post_et)
@@ -178,22 +174,22 @@ class WkHubParser(WkParser):
 				authors = self.extract_author(post_et)
 
 				new_job = JobRawTopic(
-					uri = post_uri,
-					title = title,
-					image_uri = image_uri,
-					short_text = short_text,
-					comments = comments,
-					views = views,
-					time = time,
+					uri=post_uri,
+					title=title,
+					image_uri=image_uri,
+					short_text=short_text,
+					comments=comments,
+					views=views,
+					post_time=post_time,
 				)
 
-				for uri, name in authors:
-					new_author = new_job.authors.add()
-					new_author.name = name
-					new_author.uri = uri
-					new_author.type = DataAuthor.TOPIC
-
+			for uri, name in authors:
+				new_author = new_job.authors.add()
+				new_author.name = name
+				new_author.uri = uri
+				new_author.type = DataAuthor.TOPIC
 				tasks.append(TaskRawTopic(new_job))
+
 
 		return tasks
 
@@ -208,7 +204,7 @@ class WkTopicFetcher(WkUrlFetcher):
 		
 class WkTopicParser(WkParser):
 	name = "worker.topic_parser"
-		
+
 	def __target__(self, task, **kwargs):
 		html = clean_html(task.job.html)
 		hub_doc = document_fromstring(html)
@@ -217,30 +213,14 @@ class WkTopicParser(WkParser):
 		for el in content_el:
 			if el.tag in ["p", "ul", "ol", "strong"]:
 				full_text = "".join([full_text, el.text_content()])
-
+		task.job.html = "None"
 		task.job.full_text = full_text
 		return [task]
 
-from sqlalchemy import Table
-from sqlalchemy.orm import mapper, create_session
-
 class WkTopicSqlWriter(SqlWriter):
+
 	name = "worker.topic_sql_writer"
 
 	class SqlTmp(object):
-		pass
-
-	def __target__(self, task, **kwargs):
-		pass
-		mailbox = kwargs["mailbox"]
-		if task.name not in mailbox.db_tabs:
-			t = Table(task.name, mailbox.db_metadata, *task.__columns__())
-			mapper(WkTopicSqlWriter.SqlTmp, t)
-			mailbox.db_tabs[task.name] = t
-			mailbox.db_session = create_session(bind=mailbox.db_engine,
-				autocommit=False, autoflush=True)
-		tmp = WkTopicSqlWriter.SqlTmp()
-		task.copy_to(tmp)
-		mailbox.db_session.add(tmp)
-		mailbox.db_session.commit()
-		return []
+		field_value_mapper = {}
+		field_type_mapper = {}

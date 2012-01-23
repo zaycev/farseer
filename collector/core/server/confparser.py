@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+import logging
 
 EMPTY_LINE_REGEX = re.compile("^\s*$")
 COMMENT_REGEX = re.compile("^\s*\#.*$")
@@ -14,11 +15,10 @@ def Namespace(apptrees):
 		apps = tree.get("apps")
 		if ns != None:
 			for app in apps:
-#				print "try index appname: {0}".format(app)
 				fullname = "{0}.{1}".format(ns_name, app.name)
 				ns[fullname] = app
 		else:
-			print "config parser error"
+			logging.debug("config parser error")
 	return ns
 
 def Workflow(conf, namespace):
@@ -31,7 +31,7 @@ def Workflow(conf, namespace):
 			if mapped:
 				services.extend(mapped)
 			else:
-				print "line parse error: {0};\n".format(line)
+				logging.debug("line parse error: {0};\n".format(line))
 	return services
 
 def parse_line(confline, namespace):

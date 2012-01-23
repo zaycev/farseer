@@ -2,13 +2,15 @@
 from google.protobuf.descriptor import FieldDescriptor
 
 from sqlalchemy import Integer, Text, Float, Boolean, Binary, MetaData
-from sqlalchemy import create_engine
-from sqlalchemy.orm import create_session
+from sqlalchemy import Table, create_engine
+from sqlalchemy.orm import mapper, create_session
 from sqlalchemy.engine.url import URL
 
 from collector.core.server.service import Worker
 from collector.core.server.service import Service
 from settings2 import ORM_CONFIG
+
+import traceback
 
 PROTOBUFF_SQL_MAP = {
 	FieldDescriptor.TYPE_BOOL: Boolean,
@@ -45,10 +47,31 @@ class SqlWriter(Worker):
 		)
 		mailbox.db_engine = create_engine(url)
 		mailbox.db_metadata = MetaData(bind=mailbox.db_engine)
-		self.__init_mapper__(mailbox)
 
-	def __init_mapper__(self, mailbox):
-		pass
+	def __target__(self, task, **kwargs):
+		mailbox = kwargs["mailbox"]
+		if task.name not in mailbox.db_tabs:
+			new_tab_name = SqlWriter.sql_table_name(task)
+			t = Table(new_tab_name, mailbox.db_metadata, *task.__columns__())
+			mapper(self.__class__.SqlTmp, t)
+			mailbox.db_tabs[task.name] = t
+			mailbox.db_session = create_session(bind=mailbox.db_engine,
+				autocommit=False, autoflush=True)
+			try:
+				mailbox.db_metadata.create_all(mailbox.db_engine)
+			except Exception:
+				# TODO: remove this printings
+				self.log(traceback.format_exc())
+
+		tmp = self.__class__.SqlTmp()
+		task.copy_to(tmp)
+		mailbox.db_session.add(tmp)
+		mailbox.db_session.commit()
+		return []
+
+	@staticmethod
+	def sql_table_name(task):
+		return task.name.replace(".", "_")
 
 	class Mailbox(Service.Mailbox):
 		def __init__(self, owner, **kwargs):
@@ -57,3 +80,7 @@ class SqlWriter(Worker):
 			self.db_session = None
 			self.db_metadata = None
 			self.db_tabs = {}
+
+	class SqlTmp(object):
+		field_value_mapper = {}
+		field_type_mapper = {}

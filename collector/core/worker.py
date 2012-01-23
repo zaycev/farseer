@@ -15,7 +15,7 @@ SC_URI_PATTERN = u"http://api.sharedcount.com/?url={0}"								# SocialCounter
 
 class WkUrlFetcher(Worker):
 	name = "worker.fetcher"
-	fetch_timeout = 15
+	fetch_timeout = 45
 	def_enc = "utf-8"
 	
 	def fetch_html(self, uri):
@@ -54,9 +54,3 @@ class WkLiFetcher(WkUrlFetcher):
 	pass
 class WkScFetcher(WkUrlFetcher):
 	pass
-
-class DirectDbWriter(Worker):
-	
-	def __target__(self, task, **kwargs):
-		# sql_writeble = task.sql()
-		pass

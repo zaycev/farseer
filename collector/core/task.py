@@ -7,11 +7,10 @@ from sqlalchemy import Column, Integer
 import time as T
 
 class Task(object):
-	max_print_str_length = 64
+	max_print_str_length = 256
 	name = "sys.task.base"
 	jobt = Job
-	# sql = None
-	
+
 	def __init__(self, job_proto=None):
 		time = T.time() + T.timezone
 		self.job = self.jobt()
@@ -31,7 +30,7 @@ class Task(object):
 		return True
 		
 	def __unicode__(self):
-		print_str = u"\n───{0}".format(self.name)
+		print_str = u"───{0}".format(self.name)
 		for field_descr, field_val in self.job.ListFields():
 			if field_descr.type == FieldDescriptor.TYPE_STRING:
 				value_str = field_val\
@@ -43,14 +42,13 @@ class Task(object):
 			else:
 				value_str = str(field_val)
 			print_str += u"\n   ├───{0} = {1}".format(field_descr.name, value_str)
-		print_str += u"\n"
 		return print_str.encode('utf-8')
 
 	def __str__(self):
 		return self.__unicode__()
 
 	def __columns__(self):
-		cols=[Column('id', Integer, primary_key=True)]
+		cols=[Column('id', Integer, primary_key=True, autoincrement=True)]
 		for field_descr, _ in self.job.ListFields():
 			sql_type = PROTOBUFF_SQL_MAP[field_descr.type]
 			if sql_type != None:
