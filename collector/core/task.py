@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from collector_pb2 import Job, JobMeta, JobExample
-from collector.core.orm import PROTOBUFF_SQL_MAP
+from collector.core.orm import PROTO_BUFF_SQL_MAP
 from google.protobuf.descriptor import FieldDescriptor
 from sqlalchemy import Column, Integer
 
@@ -10,6 +10,11 @@ class Task(object):
 	max_print_str_length = 256
 	name = "sys.task.base"
 	jobt = Job
+
+	sql_table_name = None
+	sql_exclude_fields = None
+	sql_type_map = None
+	sql_value_map = None
 
 	def __init__(self, job_proto=None):
 		time = T.time() + T.timezone
@@ -50,14 +55,22 @@ class Task(object):
 	def __columns__(self):
 		cols=[Column('id', Integer, primary_key=True, autoincrement=True)]
 		for field_descr, _ in self.job.ListFields():
-			sql_type = PROTOBUFF_SQL_MAP[field_descr.type]
-			if sql_type != None:
+			sql_type = PROTO_BUFF_SQL_MAP[field_descr.type]
+			if sql_type is not None:
 				cols.append(Column(field_descr.name, sql_type, primary_key=False))
 		return cols
 
 	def copy_to(self, object):
 		for field_descr, val in self.job.ListFields():
-			setattr(object, field_descr.name, val)
+			if self.sql_exclude_fields is not None and\
+			   field_descr.name in self.sql_exclude_fields:
+				pass
+			else:
+				value = val
+				if self.sql_value_map\
+					and field_descr.name in self.sql_value_map:
+					value = self.sql_value_map[field_descr.name](value)
+				setattr(object, field_descr.name, value)
 
 class TaskExample(Task):
 	name = "sys.task.example"

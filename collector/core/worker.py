@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import urllib2
-from collector.core.server.service import Worker
+from collector.core.service import Worker
 
 FB_URI_PATTERN = u"http://graph.facebook.com/{0}"									# Facebook
 TW_URI_PATTERN = u"http://urls.api.twitter.com/1/urls/count.json?url={0}"			# Twitter
@@ -34,7 +34,7 @@ class WkSocicalDataFetcher(WkUrlFetcher):
 	name = "worker.abstract_social_fetcher"
 	template = None
 	
-	def __target__(self, task, **kwargs):
+	def target(self, task, **kwargs):
 		pass
 		#uri = task.job.uri
 

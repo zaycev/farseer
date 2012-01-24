@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-import collector.core as core
+import collector.core.service
+import collector.core.orm
 
 CORE_APPS = {
 	"namespace": "sys",
 	"apps": [
-		core.Console,
-		core.SimpleStore,
-		core.Worker,
-	    core.TaskBootstraper,
+		collector.core.service.Worker,
+		collector.core.orm.SqlWriter
 	],
 }

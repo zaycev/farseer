@@ -11,6 +11,7 @@ from collector.core import Worker
 from collector.core import Task
 from collector.core import WkUrlFetcher
 from collector.core.orm import SqlWriter
+from collector.core.service import Behavior
 
 from apps.bi.protocol_pb2 import DataAuthor
 from apps.bi.protocol_pb2 import DataComment
@@ -48,7 +49,7 @@ class WkHubUriFormer(Worker):
 			return self.template.format(page_num)
 		return None
 
-	def __target__(self, task, **kwargs):
+	def target(self, task):
 		hub_uri_list = []
 		if not(task.job.f and task.job.t) and not task.job.sample:
 			raise Exception("{0}: wrong args".format(self.name))
@@ -67,20 +68,20 @@ class WkHubUriFormer(Worker):
 					new_job = JobHubUri(uri=new_uri)
 					new_task = TaskHubUri(new_job)
 					hub_uri_list.append(new_task)
-
 		return hub_uri_list
 
 
 class WkHubFetcher(WkUrlFetcher):
 	name = "worker.hub_fetcher"
 	
-	def __target__(self, task, **kwargs):
+	def target(self, task):
 		html = self.fetch_html(task.job.uri)
 		return [TaskRawHub(JobRawHub(html=html))]
 
 
 class WkHubParser(WkParser):
 	name = "worker.hub_parser"
+	behavior_mode = Behavior.PROC
 
 	def extract_image_uri(self, post_et):
 		try:
@@ -154,7 +155,7 @@ class WkHubParser(WkParser):
 						return 0
 		return 0
 
-	def __target__(self, task, **kwargs):
+	def target(self, task):
 		html = task.job.html
 		hub_doc = document_fromstring(html)
 		river = hub_doc.find_class("river")[0]
@@ -197,15 +198,16 @@ class WkHubParser(WkParser):
 class WkTopicFetcher(WkUrlFetcher):
 	name = "worker.topic_fetcher"
 	
-	def __target__(self, task, **kwargs):
+	def target(self, task):
 		html = self.fetch_html(task.job.uri)
 		task.job.html = html
 		return [task]
 		
 class WkTopicParser(WkParser):
 	name = "worker.topic_parser"
+	behavior_mode = Behavior.PROC
 
-	def __target__(self, task, **kwargs):
+	def target(self, task):
 		html = clean_html(task.job.html)
 		hub_doc = document_fromstring(html)
 		content_el = hub_doc.find_class("KonaBody post-content")[0]
@@ -216,11 +218,3 @@ class WkTopicParser(WkParser):
 		task.job.html = "None"
 		task.job.full_text = full_text
 		return [task]
-
-class WkTopicSqlWriter(SqlWriter):
-
-	name = "worker.topic_sql_writer"
-
-	class SqlTmp(object):
-		field_value_mapper = {}
-		field_type_mapper = {}
