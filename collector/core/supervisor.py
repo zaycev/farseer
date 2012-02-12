@@ -2,7 +2,9 @@
 import time
 import logging
 import multiprocessing
-from settings import BOOTSTRAP
+from options import BOOTSTRAP
+import redis
+import pickle
 
 
 def Namespace(app_forrest):
@@ -20,6 +22,7 @@ def Namespace(app_forrest):
 class SysSV:
 	def __init__(self, apps, workflow, mode="shell"):
 		namespace = Namespace(apps)
+		conn =  redis.StrictRedis()
 
 		keepers = dict()
 		last_queue = None
@@ -27,28 +30,29 @@ class SysSV:
 		for tier in workflow:
 
 			if tier.params["wk"] == "bootstrap":
-				last_queue = multiprocessing.Queue()
+				last_queue = "bootstrap"
 				task = namespace[BOOTSTRAP[0]](**BOOTSTRAP[1])
-				last_queue.put(task)
+				conn.lpush(last_queue, pickle.dumps(task))
 			else:
 				wk_path = tier.params["wk"]
 				wk_qti = tier.params.get("qti", 1)
 				wk_keeper = tier.params.get("keeper", None)
 				keeper_queue = None
 
+				worker_cls = namespace[wk_path]
+				new_queue = worker_cls.name
+
 				if wk_keeper:
 					if wk_keeper not in keepers:
 						keeper_proc = namespace[wk_keeper]()
-						keeper_queue = multiprocessing.Queue()
+						keeper_queue = worker_cls.name
 						keepers[wk_keeper] = keeper_queue
 						keeper_proc.mailbox.input_queue = keeper_queue
 						keeper_proc.run()
 					else:
 						keeper_queue = keepers[wk_keeper]
 
-
-				new_queue = multiprocessing.Queue()
-				worker_cls = namespace[wk_path]
+				print  "{0} -> {1} -> {2}".format(last_queue, worker_cls, new_queue)
 
 				for i in xrange(0, wk_qti):
 					new_worker = worker_cls()
@@ -57,7 +61,6 @@ class SysSV:
 					if wk_keeper and keeper_queue:
 						new_worker.mailbox.keeper = keeper_queue
 					new_worker.run()
-
 				last_queue = new_queue
 
 		while True:

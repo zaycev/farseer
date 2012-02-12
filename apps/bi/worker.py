@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import sys
 import time
 import datetime
 
@@ -8,26 +7,31 @@ from lxml.html import document_fromstring
 from lxml.html.clean import clean_html
 
 from collector.core import Worker
-from collector.core import Task
 from collector.core import WkUrlFetcher
-from collector.core.orm import SqlWriter
-from collector.core.service import Behavior
+from collector.core import Behavior
+from collector.core import SqlReader
 
-from apps.bi.protocol_pb2 import DataAuthor
-from apps.bi.protocol_pb2 import DataComment
-
-from apps.bi.protocol_pb2 import JobHubRange
-from apps.bi.protocol_pb2 import JobHubUri
-from apps.bi.protocol_pb2 import JobRawHub
+from apps.bi.protocol_pb2 import JobRiverUri
+from apps.bi.protocol_pb2 import JobRawRiver
 from apps.bi.protocol_pb2 import JobRawTopic
 
-from apps.bi.task import TaskHubRange
-from apps.bi.task import TaskHubUri
-from apps.bi.task import TaskRawHub
+from apps.bi.task import TaskRiverUri
+from apps.bi.task import TaskRawRiver
 from apps.bi.task import TaskRawTopic
 
 class WkParser(Worker):
 	name = "worker.parser"
+	text_content_allowed_containers = {"p", "ul", "ol", "dl", "strong", "span", "a"}
+
+	@staticmethod
+	def text_content(content_el, exclude={}):
+		full_text = ""
+		containers = WkParser.text_content_allowed_containers
+		for el in content_el:
+			if el.tag in containers and el.tag not in exclude:
+				full_text = "".join([full_text, el.text_content(), "\n"])
+		return full_text
+
 	
 	@staticmethod
 	def find_class(el, class_name, default_index=0):
@@ -40,8 +44,8 @@ class WkParser(Worker):
 
 
 
-class WkHubUriFormer(Worker):
-	name = "worker.hub_uri_former"
+class WkRiverUriFormer(Worker):
+	name = "worker.river_uri_former"
 	template = u"http://www.businessinsider.com/?page={0}"
 	
 	def gen_uri(self, page_num):
@@ -50,37 +54,37 @@ class WkHubUriFormer(Worker):
 		return None
 
 	def target(self, task):
-		hub_uri_list = []
+		river_uri_list = []
 		if not(task.job.f and task.job.t) and not task.job.sample:
 			raise Exception("{0}: wrong args".format(self.name))
 		if task.job.f and task.job.t:
 			for page_num in xrange(task.job.f, task.job.t + 1):
 				new_uri = self.gen_uri(page_num)
 				if new_uri:
-					new_job = JobHubUri(uri=new_uri)
-					new_task = TaskHubUri(new_job)
-					hub_uri_list.append(new_task)
+					new_job = JobRiverUri(uri=new_uri)
+					new_task = TaskRiverUri(new_job)
+					river_uri_list.append(new_task)
 
 		if task.job.sample:
 			for page_num in task.job.sample:
 				new_uri = self.gen_uri(page_num)
 				if new_uri:
-					new_job = JobHubUri(uri=new_uri)
-					new_task = TaskHubUri(new_job)
-					hub_uri_list.append(new_task)
-		return hub_uri_list
+					new_job = JobRiverUri(uri=new_uri)
+					new_task = TaskRiverUri(new_job)
+					river_uri_list.append(new_task)
+		return river_uri_list
 
 
-class WkHubFetcher(WkUrlFetcher):
-	name = "worker.hub_fetcher"
+class WkRiverFetcher(WkUrlFetcher):
+	name = "worker.river_fetcher"
 	
 	def target(self, task):
 		html = self.fetch_html(task.job.uri)
-		return [TaskRawHub(JobRawHub(html=html))]
+		return [TaskRawRiver(JobRawRiver(html=html, uri=task.job.uri))]
 
 
-class WkHubParser(WkParser):
-	name = "worker.hub_parser"
+class WkRiverParser(WkParser):
+	name = "worker.river_parser"
 	behavior_mode = Behavior.PROC
 
 	def extract_image_uri(self, post_et):
@@ -89,7 +93,7 @@ class WkHubParser(WkParser):
 			if img.tag == "img":
 				return img.get("src")
 		except:
-			return None
+			return "None"
 
 	def extract_author(self, post_et):
 		byline = self.find_class(post_et,"byline")[0]
@@ -127,10 +131,7 @@ class WkHubParser(WkParser):
 
 	def extract_short_text(self, post_et):
 		excerpt = self.find_class(post_et, "excerpt")[0]
-		for el in excerpt:
-			if el.tag == "p":
-				return el.text
-		return None
+		return self.text_content(excerpt, exclude={"a"})
 
 	def extract_comments(self, post_et):
 		byline = self.find_class(post_et,"byline")[0]
@@ -157,8 +158,8 @@ class WkHubParser(WkParser):
 
 	def target(self, task):
 		html = task.job.html
-		hub_doc = document_fromstring(html)
-		river = hub_doc.find_class("river")[0]
+		river_doc = document_fromstring(html)
+		river = river_doc.find_class("river")[0]
 		tasks = []
 
 		for post_et in river:
@@ -166,40 +167,48 @@ class WkHubParser(WkParser):
 			cls = post_et.attrib.get("class", [])
 
 			if tag == "div" and ("yui-gd" in cls or "river-post" in cls):
-				post_uri, title = self.extract_title(post_et)
-				post_time = self.extract_time(post_et)
-				image_uri = self.extract_image_uri(post_et)
-				short_text = self.extract_short_text(post_et)
-				comments = self.extract_comments(post_et)
-				views = self.extract_views(post_et)
-				authors = self.extract_author(post_et)
 
-				new_job = JobRawTopic(
-					uri=post_uri,
-					title=title,
-					image_uri=image_uri,
-					short_text=short_text,
-					comments=comments,
-					views=views,
-					post_time=post_time,
-				)
+				uri, title = self.extract_title(post_et)
 
-			for uri, name in authors:
-				new_author = new_job.authors.add()
-				new_author.name = name
-				new_author.uri = uri
-				new_author.type = DataAuthor.TOPIC
-				tasks.append(TaskRawTopic(new_job))
+				if "http://www.businessinsider" in uri:
 
+					try:
+
+						tm = self.extract_time(post_et)
+						views = self.extract_views(post_et)
+						comments = self.extract_comments(post_et)
+						short_text = self.extract_short_text(post_et)
+						image_uri = self.extract_image_uri(post_et)
+
+						# authors = self.extract_author(post_et)
+						new_job = JobRawTopic()
+						new_job.post_river_uri = task.job.uri
+						new_job.post_uri = uri
+						new_job.post_title = title
+						new_job.post_time = tm
+						new_job.post_views_qti = views
+						new_job.post_comments_qti = comments
+						new_job.post_short_text = short_text
+						if image_uri is not None:
+							new_job.post_image_uri = image_uri
+
+						tasks.append(TaskRawTopic(new_job))
+
+		#				for uri, name in authors:
+		#					new_author = new_job.authors.add()
+		#					new_author.name = name
+		#					new_author.uri = uri
+		#					new_author.type = DataAuthor.TOPIC
+					except:
+						pass
 
 		return tasks
 
-		
 class WkTopicFetcher(WkUrlFetcher):
 	name = "worker.topic_fetcher"
 	
 	def target(self, task):
-		html = self.fetch_html(task.job.uri)
+		html = self.fetch_html(task.job.post_uri)
 		task.job.html = html
 		return [task]
 		
@@ -209,12 +218,12 @@ class WkTopicParser(WkParser):
 
 	def target(self, task):
 		html = clean_html(task.job.html)
-		hub_doc = document_fromstring(html)
-		content_el = hub_doc.find_class("KonaBody post-content")[0]
-		full_text = ""
-		for el in content_el:
-			if el.tag in ["p", "ul", "ol", "strong"]:
-				full_text = "".join([full_text, el.text_content()])
-		task.job.html = "None"
-		task.job.full_text = full_text
+		river_doc = document_fromstring(html)
+		content_el = river_doc.find_class("KonaBody post-content")[0]
+		task.job.html = html
+		task.job.full_text = self.text_content(content_el)
 		return [task]
+
+class WkRawTopicReader(SqlReader):
+	name = "worker.topic_reader"
+	sql_input_task = TaskRawTopic

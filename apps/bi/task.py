@@ -1,23 +1,21 @@
 # -*- coding: utf-8 -*-
-import time
 import datetime
 
 from collector.core.task import Task
 
-from apps.bi.protocol_pb2 import DataAuthor
-from apps.bi.protocol_pb2 import DataComment
-
-from apps.bi.protocol_pb2 import JobHubRange
-from apps.bi.protocol_pb2 import JobHubUri
-from apps.bi.protocol_pb2 import JobRawHub
+from apps.bi.protocol_pb2 import JobRiverRange
+from apps.bi.protocol_pb2 import JobRiverUri
+from apps.bi.protocol_pb2 import JobRawRiver
 from apps.bi.protocol_pb2 import JobRawTopic
 
-class TaskHubRange(Task):
-	name = "task.hub_range"
-	jobt = JobHubRange
+from sqlalchemy import DateTime
+
+class TaskRiverRange(Task):
+	name = "task.river_range"
+	jobt = JobRiverRange
 	
 	def __init__(self, *args, **kwargs):
-		super(TaskHubRange, self).__init__()
+		super(TaskRiverRange, self).__init__()
 		if "f" in kwargs and "t" in kwargs:
 			self.job.f = kwargs["f"]
 			self.job.t = kwargs["t"]
@@ -25,16 +23,20 @@ class TaskHubRange(Task):
 			for number in kwargs["sample"]:
 				self.job.sample.append(number)
 
-class TaskHubUri(Task):
-	name = "task.hub_uri"
-	jobt = JobHubUri
+class TaskRiverUri(Task):
+	name = "task.river_uri"
+	jobt = JobRiverUri
 
 
-class TaskRawHub(Task):
-	name = "task.hub_raw"
-	jobt = JobRawHub
-
+class TaskRawRiver(Task):
+	name = "task.river_raw"
+	jobt = JobRawRiver
 
 class TaskRawTopic(Task):
 	name = "task.topic_raw"
 	jobt = JobRawTopic
+	sql_exclude_fields = {"html"}
+	sql_type_map = {"post_time": DateTime}
+	sql_value_map = {
+		"post_time": lambda float_time: datetime.datetime.fromtimestamp(float_time)
+	}

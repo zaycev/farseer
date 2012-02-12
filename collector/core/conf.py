@@ -6,6 +6,6 @@ CORE_APPS = {
 	"namespace": "sys",
 	"apps": [
 		collector.core.service.Worker,
-		collector.core.orm.SqlWriter
+		collector.core.orm.SqlWriter,
 	],
 }

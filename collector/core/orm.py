@@ -9,7 +9,7 @@ from sqlalchemy.engine.url import URL
 from collector.core.service import Worker
 from collector.core.service import Service
 from collector.core.service import Behavior
-from settings import ORM_CONFIG
+from options import DATABASE_CONFIG
 
 import traceback
 
@@ -31,47 +31,25 @@ PROTO_BUFF_SQL_MAP = {
 	FieldDescriptor.TYPE_UINT64: Integer,
 }
 
-class SqlWriter(Worker):
-	name = "worker.sql_writer"
-	behavior_mode = Behavior.PROC
+class SqlWorker(Worker):
+	name = "worker.sql_worker"
 
 	def init_mailbox(self, mailbox, **kwargs):
 		url = URL(
-			ORM_CONFIG["DB_DRIVER"],
-			username=ORM_CONFIG["DB_USER"],
-			password=ORM_CONFIG["DB_PASSWORD"],
-			host=ORM_CONFIG["DB_HOST"],
-			port=ORM_CONFIG["DB_PORT"],
-			database=ORM_CONFIG["DB_DATABASE"]
+			DATABASE_CONFIG["DB_DRIVER"],
+			username=DATABASE_CONFIG["DB_USER"],
+			password=DATABASE_CONFIG["DB_PASSWORD"],
+			host=DATABASE_CONFIG["DB_HOST"],
+			port=DATABASE_CONFIG["DB_PORT"],
+			database=DATABASE_CONFIG["DB_DATABASE"]
 		)
 		mailbox.db_engine = create_engine(url)
 		mailbox.db_metadata = MetaData(bind=mailbox.db_engine)
 
-	def target(self, task):
-		mailbox = self.mailbox
-		if task.name not in mailbox.db_tabs:
-			new_tab_name = SqlWriter.sql_table_name(task)
-			tab = Table(new_tab_name, mailbox.db_metadata, *task.__columns__())
-			tab_type = type("tb-{0}".format(len(mailbox.db_tabs)), (object,), {})
-			mapper(tab_type, tab)
-			mailbox.db_tabs[task.name] = (tab, tab_type)
-			mailbox.db_session = create_session(bind=mailbox.db_engine,
-				autocommit=False, autoflush=True)
-			try:
-				mailbox.db_metadata.create_all(mailbox.db_engine)
-			except Exception:
-				# TODO: remove this printings
-				self.log(traceback.format_exc())
-		else:
-			tab_type = mailbox.db_tabs[task.name][1]
-		tmp = tab_type()
-		task.copy_to(tmp)
-		mailbox.db_session.add(tmp)
-		mailbox.db_session.commit()
-		return []
-
 	@staticmethod
 	def sql_table_name(task):
+		if task.sql_table_name:
+			return task.sql_table_name.replace(".", "_")
 		return task.name.replace(".", "_")
 
 	class Mailbox(Service.Mailbox):
@@ -82,6 +60,40 @@ class SqlWriter(Worker):
 			self.db_metadata = None
 			self.db_tabs = {}
 
-	class SqlMapper(object):
-		field_value_mapper = {}
-		field_type_mapper = {}
+class SqlReader(SqlWorker):
+	name = "worker.sql_worker"
+	behavior_mode = Behavior.PROC
+	window_size = 128
+	window_sleep_time = 4
+
+	def target(self, task):
+		pass
+
+
+class SqlWriter(SqlWorker):
+	name = "worker.sql_writer"
+	behavior_mode = Behavior.PROC
+
+	def target(self, task):
+		mailbox = self.mailbox
+		if task.name not in mailbox.db_tabs:
+			new_tab_name = SqlWriter.sql_table_name(task)
+			tab = Table(new_tab_name, mailbox.db_metadata, *task.__columns__())
+			tab_type = type("tb-{0}".format(len(mailbox.db_tabs)), (object,), {})
+			mapper(tab_type, tab)
+			mailbox.db_tabs[task.name] = (tab, tab_type)
+			mailbox.db_session = create_session(bind=mailbox.db_engine,
+				autocommit=True, autoflush=True)
+			try:
+				mailbox.db_metadata.create_all(mailbox.db_engine)
+			except Exception:
+				# TODO: remove this printings
+				self.log(traceback.format_exc())
+		else:
+			tab_type = mailbox.db_tabs[task.name][1]
+		tmp = tab_type()
+		task.copy_to(tmp)
+		mailbox.db_session.begin()
+		mailbox.db_session.add(tmp)
+		mailbox.db_session.commit()
+		return []

@@ -26,6 +26,11 @@ message JobExample {
 	optional string text = 2;
 }
 
+message JobOrmReaderRange {
+	required JobMeta meta = 1;
+	optional uint32 size = 2;					/* (from) start page*/
+}
+
 /* social response */
 message DataSR {
 	optional int32 fb = 1;						/* Facebook*/
