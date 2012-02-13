@@ -5,8 +5,20 @@
 
 import time
 import redis
+import random
 from options import DATABASE_CONFIG
 from collector.core.task import deserialize
+
+ALPHABET = "abcdefghijklmnopqrstuvwxyz" \
+		   "ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
+		   "0123456789~!@#$%^&*()_+<>?"
+KEY_LEN = 8
+
+def gen_key():
+	name = ""
+	for x in random.sample(ALPHABET, KEY_LEN):
+		name += x
+	return name
 
 class Singleton(type):
 
@@ -31,25 +43,24 @@ class RedisConnectionKeeper(object):
 			port=DATABASE_CONFIG["redis"].get("port", 6379),
 			host=DATABASE_CONFIG["redis"].get("host", "127.0.0.1"),
 		)
-		if DATABASE_CONFIG["redis"].get("flushdb", False):
-			self.__conn.flushdb()
 
 	@property
 	def conn(self):
 		return self.__conn
 
 	def new_queue_name(self):
-		self.queues += 1
-		return str(self.queues)
+		return gen_key()
 
+keeper = RedisConnectionKeeper()
+def flush_db():
+	keeper.conn.flushdb()
 
 class RQueue:
-	keeper=RedisConnectionKeeper()
+	keeper=keeper
 
 	def __init__(self, max_size=512):
 		self.max_size = max_size
 		self.name = self.keeper.new_queue_name()
-		print self.name
 
 	def put(self, task):
 		while self.keeper.conn.llen(self.name) > 512:

@@ -23,7 +23,7 @@ from distr.bi.task import TaskRawTopic
 class WkRiverUriFormer(Worker):
 	name = "worker.river_uri_former"
 	template = u"http://www.businessinsider.com/?page={0}"
-	
+
 	def gen_uri(self, page_num):
 		if page_num > 0:
 			return self.template.format(page_num)
@@ -53,7 +53,7 @@ class WkRiverUriFormer(Worker):
 
 class WkRiverFetcher(WkHtmlFetcher):
 	name = "worker.river_fetcher"
-	
+
 	def target(self, task):
 		html = self.fetch_html(task.job.uri)
 		return [TaskRawRiver(JobRawRiver(html=html, uri=task.job.uri))]
@@ -170,11 +170,11 @@ class WkRiverParser(WkParser):
 
 						tasks.append(TaskRawTopic(new_job))
 
-		#				for uri, name in authors:
-		#					new_author = new_job.authors.add()
-		#					new_author.name = name
-		#					new_author.uri = uri
-		#					new_author.type = DataAuthor.TOPIC
+					#				for uri, name in authors:
+					#					new_author = new_job.authors.add()
+					#					new_author.name = name
+					#					new_author.uri = uri
+					#					new_author.type = DataAuthor.TOPIC
 					except:
 						pass
 
@@ -182,12 +182,12 @@ class WkRiverParser(WkParser):
 
 class WkTopicFetcher(WkHtmlFetcher):
 	name = "worker.topic_fetcher"
-	
+
 	def target(self, task):
 		html = self.fetch_html(task.job.post_uri)
 		task.job.html = html
 		return [task]
-		
+
 class WkTopicParser(WkParser):
 	name = "worker.topic_parser"
 	behavior_mode = Behavior.PROC

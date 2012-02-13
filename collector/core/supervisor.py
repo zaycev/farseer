@@ -27,6 +27,7 @@ class SysSV:
 
 			if tier.params["wk"] == "bootstrap":
 				task = namespace[BOOTSTRAP[0]](**BOOTSTRAP[1])
+				rqueue.flush_db()
 				last_queue = rqueue.RQueue()
 				last_queue.put(task)
 			else:
@@ -47,8 +48,6 @@ class SysSV:
 						keeper_proc.run()
 					else:
 						keeper_queue = keepers[wk_keeper]
-
-				print  "{0} -> {1} -> {2}".format(last_queue.name, worker_cls, new_queue.name)
 
 				for i in xrange(0, wk_qti):
 					new_worker = worker_cls()

@@ -31,7 +31,7 @@ class WkParser(Worker):
 		containers = WkParser.text_content_allowed_containers
 		for el in content_el:
 			if el.tag in containers and el.tag not in exclude:
-				full_text = "".join([full_text, el.text_content(), "\n"])
+				full_text = "".join([full_text, "\n", el.text_content()])
 		return full_text
 
 	@staticmethod
