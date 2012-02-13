@@ -1,7 +1,0 @@
-# -*- coding: utf-8 -*-
-
-from collector.core import SqlReader
-
-class WkSqlTaskReader(SqlReader):
-	name = "worker.sql_task_reader"
-

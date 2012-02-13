@@ -6,7 +6,7 @@ import re
 from sqlalchemy import MetaData, create_engine
 from sqlalchemy.engine.url import URL
 from options import DATABASE_CONFIG
-from apps.nlp import WkRefiner
+from distr.nlp import WkRefiner
 
 default_lexicon_file = "/Volumes/HFS/research/05.01.2012/lexicon-full.csv"
 default_featureslist_file = "/Volumes/HFS/research/05.01.2012/features.csv"

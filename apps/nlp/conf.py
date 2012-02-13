@@ -1,1 +1,0 @@
-# -*- coding: utf-8 -*-import apps.bi as biAPPS = {	"namespace": "nlp",	"apps": [],}

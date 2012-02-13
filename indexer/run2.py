@@ -6,7 +6,7 @@ from sqlalchemy.orm import mapper, create_session
 from sqlalchemy.engine.url import URL
 
 from options import DATABASE_CONFIG
-from apps.nlp import WkRefiner
+from distr.nlp import WkRefiner
 
 
 CSV_DICT = "/Volumes/HFS/research/dict.csv"

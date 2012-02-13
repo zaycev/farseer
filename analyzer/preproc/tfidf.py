@@ -7,7 +7,7 @@ import csv
 from sqlalchemy import create_engine
 from sqlalchemy.engine.url import URL
 from options import DATABASE_CONFIG
-from apps.nlp import WkRefiner
+from distr.nlp import WkRefiner
 
 ref = WkRefiner()
 

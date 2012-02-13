@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import apps.std.conf
-import apps.nlp.conf
-import apps.bi.conf
+import distr.std.conf
+import distr.nlp.conf
+import distr.bi.conf
 
 INSTALLED_APPS = [
-	apps.std.conf.APPS,
-	apps.nlp.conf.APPS,
-	apps.bi.conf.APPS,
+	distr.std.conf.APPS,
+	distr.nlp.conf.APPS,
+	distr.bi.conf.APPS,
 ]

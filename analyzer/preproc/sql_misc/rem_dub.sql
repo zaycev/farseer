@@ -1,5 +1,7 @@
 -- After running collector app still remains a lot of duplicate rows (tasks).
 -- To easily remove them, use one of the following SQL commands.
+-- This code removes rows with the same post_uri value
+-- and remains one row with higher id value.
 -- (c) found on stackoverflow.com
 
 -- very slow on relatively big tables
