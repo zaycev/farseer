@@ -33,6 +33,9 @@ class Task(object):
 		self.job = self.jobt()
 		self.job.ParseFromString(state)
 
+	def serialize(self):
+		return pickle.dumps(self)
+
 	def is_correct(self):
 		return True
 		
@@ -81,6 +84,9 @@ class Task(object):
 				   field_descr.name in self.sql_value_map:
 					value = self.sql_value_map[field_descr.name](value)
 				setattr(object, field_descr.name, value)
+
+def deserialize(task_blob):
+	return pickle.loads(task_blob)
 
 class TaskExample(Task):
 	name = "sys.task.example"

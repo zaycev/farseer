@@ -31,17 +31,18 @@ PROTO_BUFF_SQL_MAP = {
 	FieldDescriptor.TYPE_UINT64: Integer,
 }
 
+
 class SqlWorker(Worker):
 	name = "worker.sql_worker"
 
 	def init_mailbox(self, mailbox, **kwargs):
 		url = URL(
-			DATABASE_CONFIG["DB_DRIVER"],
-			username=DATABASE_CONFIG["DB_USER"],
-			password=DATABASE_CONFIG["DB_PASSWORD"],
-			host=DATABASE_CONFIG["DB_HOST"],
-			port=DATABASE_CONFIG["DB_PORT"],
-			database=DATABASE_CONFIG["DB_DATABASE"]
+			DATABASE_CONFIG["arxiv"]["driver"],
+			username=DATABASE_CONFIG["arxiv"]["user"],
+			password=DATABASE_CONFIG["arxiv"]["password"],
+			host=DATABASE_CONFIG["arxiv"]["host"],
+			port=DATABASE_CONFIG["arxiv"]["port"],
+			database=DATABASE_CONFIG["arxiv"]["database"],
 		)
 		mailbox.db_engine = create_engine(url)
 		mailbox.db_metadata = MetaData(bind=mailbox.db_engine)
