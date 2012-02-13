@@ -1,19 +1,10 @@
 # -*- coding: utf-8 -*-
+# This module contains some generic worker types such as an html fetcher
+
 import urllib2
 from collector.core.service import Worker
 
-FB_URI_PATTERN = u"http://graph.facebook.com/{0}"									# Facebook
-TW_URI_PATTERN = u"http://urls.api.twitter.com/1/urls/count.json?url={0}"			# Twitter
-TP_URI_PATTERN = u"http://otter.topsy.com/stats.js?url={0}"							# Topsy
-SU_URI_PATTERN = u"http://www.stumbleupon.com/services/1.01/badge.getinfo?url={0}"	# StumbleUpon
-LI_URI_PATTERN = u"http://www.linkedin.com/cws/share-count?url={0}"					# LinkedIn
-DG_URI_PATTERN = u"http://widgets.digg.com/buttons/count?url={0}"					# Digg
-GP_URI_PATTERN = None																# GooglePlus
-
-SC_URI_PATTERN = u"http://api.sharedcount.com/?url={0}"								# SocialCounter
-
-
-class WkUrlFetcher(Worker):
+class WkHtmlFetcher(Worker):
 	name = "worker.fetcher"
 	fetch_timeout = 45
 	def_enc = "utf-8"
@@ -30,27 +21,24 @@ class WkUrlFetcher(Worker):
 		html = unicode(data, enc)
 		return html
 
-class WkSocicalDataFetcher(WkUrlFetcher):
-	name = "worker.abstract_social_fetcher"
-	template = None
-	
-	def target(self, task, **kwargs):
-		pass
-		#uri = task.job.uri
+class WkParser(Worker):
+	name = "worker.parser"
+	text_content_allowed_containers = {"p", "ul", "ol", "dl", "strong", "span", "a"}
 
-class WkFbFetcher(WkUrlFetcher):
-	pass
-class WkTwFetcher(WkUrlFetcher):
-	pass
-class WkTpFetcher(WkUrlFetcher):
-	pass
-class WkSuFetcher(WkUrlFetcher):
-	pass
-class WkDgFetcher(WkUrlFetcher):
-	pass
-class WkGpFetcher(WkUrlFetcher):
-	pass
-class WkLiFetcher(WkUrlFetcher):
-	pass
-class WkScFetcher(WkUrlFetcher):
-	pass
+	@staticmethod
+	def text_content(content_el, exclude={}):
+		full_text = ""
+		containers = WkParser.text_content_allowed_containers
+		for el in content_el:
+			if el.tag in containers and el.tag not in exclude:
+				full_text = "".join([full_text, el.text_content(), "\n"])
+		return full_text
+
+	@staticmethod
+	def find_class(el, class_name):
+		matched = el.find_class(class_name)
+		if len(matched):
+			return matched
+		else:
+			raise Exception("no elements found in {0} by class {1}"\
+			.format(el.tag, class_name))

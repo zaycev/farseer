@@ -1,6 +1,6 @@
 all:
 	@protoc --python_out=./ collector.proto
-	@protoc --proto_path=./ --python_out=./ apps/bi/protocol.proto
+	@protoc --proto_path=./ --python_out=./ distr.bi/protocol.proto
 clean:
 	@rm -f *.pyc
 	@rm -f */*.pyc
