@@ -35,6 +35,7 @@ class TaskRawRiver(Task):
 class TaskRawTopic(Task):
 	name = "task.topic_raw"
 	jobt = JobRawTopic
+	sql_table_name = "news"
 	sql_exclude_fields = {"html"}
 	sql_type_map = {"post_time": DateTime}
 	sql_value_map = {

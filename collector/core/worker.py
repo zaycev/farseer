@@ -4,12 +4,12 @@
 import urllib2
 from collector.core.service import Worker
 
-class WkHtmlFetcher(Worker):
+class WkTextDataFetcher(Worker):
 	name = "worker.fetcher"
 	fetch_timeout = 45
 	def_enc = "utf-8"
 	
-	def fetch_html(self, uri):
+	def fetch_text(self, uri):
 		req = urllib2.urlopen(url=uri, timeout=self.fetch_timeout)
 		try:
 			content_type = req["content-type"]
@@ -18,8 +18,8 @@ class WkHtmlFetcher(Worker):
 		except:
 			enc = self.def_enc
 		data = req.read()
-		html = unicode(data, enc)
-		return html
+		text_data = unicode(data, enc)
+		return text_data
 
 class WkParser(Worker):
 	name = "worker.parser"

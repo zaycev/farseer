@@ -7,7 +7,7 @@ from lxml.html import document_fromstring
 from lxml.html.clean import clean_html
 
 from collector.core import Worker
-from collector.core import WkHtmlFetcher
+from collector.core import WkTextDataFetcher
 from collector.core import WkParser
 from collector.core import Behavior
 from collector.core import SqlReader
@@ -51,11 +51,11 @@ class WkRiverUriFormer(Worker):
 		return river_uri_list
 
 
-class WkRiverFetcher(WkHtmlFetcher):
+class WkRiverFetcher(WkTextDataFetcher):
 	name = "worker.river_fetcher"
 
 	def target(self, task):
-		html = self.fetch_html(task.job.uri)
+		html = self.fetch_text(task.job.uri)
 		return [TaskRawRiver(JobRawRiver(html=html, uri=task.job.uri))]
 
 
@@ -180,11 +180,11 @@ class WkRiverParser(WkParser):
 
 		return tasks
 
-class WkTopicFetcher(WkHtmlFetcher):
+class WkTopicFetcher(WkTextDataFetcher):
 	name = "worker.topic_fetcher"
 
 	def target(self, task):
-		html = self.fetch_html(task.job.post_uri)
+		html = self.fetch_text(task.job.post_uri)
 		task.job.html = html
 		return [task]
 
