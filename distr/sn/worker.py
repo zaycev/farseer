@@ -12,7 +12,7 @@ import json
 class WkSNDataFetcher(WkTextDataFetcher):
 	name = "worker.sn_fetcher"
 	template = None
-	user_social_counter = False
+	use_social_counter = False
 
 	fb_uri = u"http://graph.facebook.com/{0}"									# Facebook
 	tw_uri = u"http://urls.api.twitter.com/1/urls/count.json?url={0}"			# Twitter
@@ -28,7 +28,7 @@ class WkSNDataFetcher(WkTextDataFetcher):
 		uri = task.job.uri
 		response = DataSR()
 		response_raw = DataRSR
-		if user_social_counter == False:
+		if self.use_social_counter is False:
 			# fetch data
 			fb_raw = self.fetch_text(self.fb_uri.format(uri))
 			tw_raw = self.fetch_text(self.tw_uri.format(uri))
@@ -54,4 +54,5 @@ class WkSNDataFetcher(WkTextDataFetcher):
 			task.job.response.CopyFrom(response)
 		else:
 			pass
+		print task
 		return [task]

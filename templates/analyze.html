@@ -48,10 +48,10 @@
 			</div>
 		</div>
 
-		<div class="container">
+		<div class="container-fluid">
 
 			<div class="row-fluid">
-				<div class="span6">
+				<div class="span4">
 					<h2>results for "{{ query }}"</h2>
 				</div>
 				<div class="span6">
@@ -59,55 +59,65 @@
 				</div>
 			</div>
 
+			<br/><br/>
+
+			<div class="row-fluid">
 			{% for result in results %}
-				<br/>
-				<div>
-					<h6>
-						found
-						{{ result.subset_size }}
-						documents, since
-						{{ result.time.start|date:"Y.m" }}–{{ result.time.end|date:"Y.m" }}
-					</h6>
-					<table class="table table-bordered table-striped table-condensed">
-						<thead>
-							<tr/>
-								<th></th>
-								<th>term</th>
-								<th>score</th>
-								<th>delta</th>
-							</tr>
-						</thead>
-						<tbody>
-							{% for row in result.data %}
-								<tr>
-									<td>{{ row.idx }}</td>
-									<td> {{ row.term }}</td>
-									<td> {{ row.score|floatformat:3 }}</td>
-									<td>
-										{% if row.delta > 6 %}
-										<span class="label label-success">+{{ row.delta }}</span>
-										{% endif %}
-										{% if row.delta > 2 and row.delta <= 6 %}
-										<span class="label label-info">+{{ row.delta }}</span>
-										{% endif %}
-										{% if row.delta >= -2 and row.delta <= 2  %}
-										<span class="label">{{ row.delta }}</span>
-										{% endif %}
-										{% if row.delta < -2 and row.delta >= -6 %}
-										<span class="label label-warning">{{ row.delta }}</span>
-										{% endif %}
-										{% if row.delta < -6 %}
-										<span class="label label-important">{{ row.delta }}</span>
-										{% endif %}
-									</td>
+
+			{# <!--{% if row.idx % 4 == 0 %}-->#}
+			{#	<!--<div class="row-fluid">-->#}
+			{# <!--{% endif %}-->#}
+
+					<div class="span3">
+						<b>
+							found
+							{{ result.subset_size }}
+							documents, since
+							{{ result.time.start|date:"Y.m" }}–{{ result.time.end|date:"Y.m" }}
+						</b>
+						<table class="table table-bordered table-striped table-condensed" class="span3" style="width:320px;">
+							<thead>
+								<tr/>
+									<th style="">idx</th>
+									<th style="">term</th>
+									<th style="">score</th>
+									<th style="">delta</th>
 								</tr>
-							{% endfor %}
-						</tbody>
-					</table>
-				</div>
-				<hr/>
-				<br/>
+							</thead>
+							<tbody>
+								{% for row in result.data %}
+									<tr>
+										<td>{{ row.idx }}</td>
+										<td>{{ row.term }}</td>
+										<td>{{ row.score|floatformat:3 }}</td>
+										<td>
+											{% if row.delta > 6 %}
+											<span class="label label-success">+{{ row.delta }}</span>
+											{% endif %}
+											{% if row.delta > 2 and row.delta <= 6 %}
+											<span class="label label-info">+{{ row.delta }}</span>
+											{% endif %}
+											{% if row.delta >= -2 and row.delta <= 2  %}
+											<span class="label">{{ row.delta }}</span>
+											{% endif %}
+											{% if row.delta < -2 and row.delta >= -6 %}
+											<span class="label label-warning">{{ row.delta }}</span>
+											{% endif %}
+											{% if row.delta < -6 %}
+											<span class="label label-important">{{ row.delta }}</span>
+											{% endif %}
+										</td>
+									</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</div>
+
+			{#<!--{% if row.idx % 4 == 0 %}-->#}
+			{#<!--{% endif %}-->#}
+
 			{% endfor %}
+			</div>
 
 			<hr>
 			<footer>

@@ -1,0 +1,1 @@
+# -*- coding: utf-8 -*-import distr.sn as snAPPS = {	"namespace": "sn",	"apps": [		sn.WkSNDataFetcher,	],}

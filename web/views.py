@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.shortcuts import render_to_response
 import  datetime
-from analyzer.preproc import search
+import search
 
 def index(request):
 	years = xrange(2008,2013)

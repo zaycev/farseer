@@ -6,6 +6,8 @@
 import time
 import redis
 import random
+import logging
+import traceback
 from options import DATABASE_CONFIG
 from collector.core.task import deserialize
 
@@ -32,49 +34,56 @@ class Singleton(type):
 		return cls.instance
 
 
-class RedisConnectionKeeper(object):
+class CPoolSingleton(object):
 	__metaclass__ = Singleton
 
 	def __init__(self):
 		self.queues = 0
 		self.timeout = DATABASE_CONFIG["redis"].get("timeout", 1)
-		self.__conn = redis.StrictRedis(
+		self.__pool = redis.ConnectionPool(
 			db=DATABASE_CONFIG["redis"].get("db", 0),
 			port=DATABASE_CONFIG["redis"].get("port", 6379),
 			host=DATABASE_CONFIG["redis"].get("host", "127.0.0.1"),
 		)
+		self.__sys_conn = redis.StrictRedis(connection_pool=self.__pool)
 
-	@property
-	def conn(self):
-		return self.__conn
+	def new_conn(self):
+		return redis.Redis(connection_pool=self.__pool)
 
 	def new_queue_name(self):
 		return gen_key()
 
-keeper = RedisConnectionKeeper()
+	@property
+	def sys_conn(self):
+		return self.__sys_conn
+
+keeper = CPoolSingleton()
 def flush_db():
-	keeper.conn.flushdb()
+	logging.debug("flushing redis db")
+	keeper.sys_conn.flushdb()
+	logging.debug("now redis db size is {0}".format(keeper.sys_conn.dbsize()))
 
 class RQueue:
-	keeper=keeper
+	timeout = keeper.timeout
 
-	def __init__(self, max_size=512):
+	def __init__(self, name, max_size=512):
 		self.max_size = max_size
-		self.name = self.keeper.new_queue_name()
+		self.name = name#keeper.new_queue_name()
+		self.conn = keeper.new_conn()
 
 	def put(self, task):
-		while self.keeper.conn.llen(self.name) > 512:
-			time.sleep(self.keeper.timeout)
-		self.keeper.conn.lpush(self.name, task.serialize())
+#		while self.conn.llen(self.name) > self.max_size:
+#			time.sleep(self.timeout)
+		self.conn.lpush(self.name, task.serialize())
 
 	def get(self):
 		while True:
-			if self.keeper.conn.llen(self.name) > 0:
-				task_blob = self.keeper.conn.rpop(self.name)
-				if task_blob:
+			task_blob = self.conn.rpop(self.name)
+			if task_blob:
+				try:
 					task = deserialize(task_blob)
 					return task
-				else:
-					time.sleep(self.keeper.timeout)
+				except:
+					logging.debug("task deserialize erroa, task={0}, name={1}".format(task_blob, self.name))
 			else:
-				time.sleep(self.keeper.timeout)
+				time.sleep(self.timeout)

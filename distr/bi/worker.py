@@ -61,7 +61,6 @@ class WkRiverFetcher(WkTextDataFetcher):
 
 class WkRiverParser(WkParser):
 	name = "worker.river_parser"
-	behavior_mode = Behavior.PROC
 
 	def extract_image_uri(self, post_et):
 		try:
@@ -133,6 +132,9 @@ class WkRiverParser(WkParser):
 		return 0
 
 	def target(self, task):
+
+		self.log("start parse river")
+
 		html = task.job.html
 		river_doc = document_fromstring(html)
 		river = river_doc.find_class("river")[0]
@@ -158,13 +160,13 @@ class WkRiverParser(WkParser):
 
 						# authors = self.extract_author(post_et)
 						new_job = JobRawTopic()
-						new_job.post_river_uri = task.job.uri
-						new_job.post_uri = uri
-						new_job.post_title = title
-						new_job.post_time = tm
-						new_job.post_views_qti = views
-						new_job.post_comments_qti = comments
-						new_job.post_short_text = short_text
+						new_job.river_uri = task.job.uri
+						new_job.uri = uri
+						new_job.title = title
+						new_job.time = tm
+						new_job.views_qti = views
+						new_job.comments_qti = comments
+						new_job.short_text = short_text
 						if image_uri is not None:
 							new_job.post_image_uri = image_uri
 
@@ -178,19 +180,20 @@ class WkRiverParser(WkParser):
 					except:
 						pass
 
+		self.log("finish parse river")
+
 		return tasks
 
 class WkTopicFetcher(WkTextDataFetcher):
 	name = "worker.topic_fetcher"
 
 	def target(self, task):
-		html = self.fetch_text(task.job.post_uri)
+		html = self.fetch_text(task.job.uri)
 		task.job.html = html
 		return [task]
 
 class WkTopicParser(WkParser):
 	name = "worker.topic_parser"
-	behavior_mode = Behavior.PROC
 
 	def target(self, task):
 		html = clean_html(task.job.html)
