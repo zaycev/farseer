@@ -22,13 +22,27 @@ for row in connection.execute("SELECT * FROM features ORDER BY tid ASC;"):
 	terms.append(row)
 	term_map[row[1]] = row[0]
 lexicon_size = len(terms)
+
 sql_score =	u"SELECT tid,tfidf "\
 			u"FROM scores WHERE did IN "\
 				u"(SELECT id FROM news " \
 				u"WHERE time>='{0}-{1}-1' AND time<'{2}-{3}-1' " \
 				u"AND news_fts_col @@ to_tsquery('english','{4}') "\
-				u"AND comms>{5} AND views>{6}) " \
+				u"ORDER BY views DESC  LIMIT 100) " \
 			u"ORDER BY tid;"
+
+sql_pow =	u"SELECT id,time,title,views,short_text "\
+			u"FROM news "\
+			u"WHERE news_fts_col "\
+				u"@@ to_tsquery('english','{4}') "\
+				u"AND time>='{0}-{1}-1' AND time<'{2}-{3}-1' "\
+			u"ORDER BY views DESC LIMIT 100;"
+
+sql_docs_count = u"SELECT count(id) FROM news " \
+				u"WHERE news_fts_col "\
+					u"@@ to_tsquery('english','{4}') "\
+					u"AND time>='{0}-{1}-1' AND time<'{2}-{3}-1';"\
+
 #sql_stat = "SELECT id,views,coms FROM"
 
 def time_range(start, end, delta):
@@ -46,8 +60,6 @@ def time_range(start, end, delta):
 
 def search(
 		text_query,
-		min_comments,
-		min_views,
 		start_date,
 		end_date,
 		max_set,
@@ -57,10 +69,21 @@ def search(
 	query= sql_score.format(
 					start_date[0], start_date[1],
 		  			end_date[0], end_date[1],
-		  			text_query, min_comments, min_views)
+		  			text_query)
 
-	prev_tid=0
-	prev_tfidf=0.0
+	query_get_docs_count = sql_docs_count.format(
+		start_date[0], start_date[1],
+		end_date[0], end_date[1],
+		text_query
+	)
+
+	exc = connection.execute(query_get_docs_count)
+	for x in exc:
+		docs_count = x[0]
+
+
+#	prev_tid=0
+#	prev_tfidf=0.0
 	tfidf_acc = [0]*lexicon_size
 
 	for tid,tfidf in connection.execute(query):
@@ -103,6 +126,6 @@ def search(
 			"start":  datetime.datetime(start_date[0], start_date[1], 1),
 			"end":  datetime.datetime(end_date[0], end_date[1], 1),
 		},
-		"subset_size": -1,
+		"subset_size": docs_count,
 		"data": result,
 	}

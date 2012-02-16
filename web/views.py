@@ -22,9 +22,6 @@ def analyze(request):
 	end_year = int(request.GET["end_year"])
 	end_month = int(request.GET["end_month"])
 	group_size = int(request.GET["group_size"])
-	min_views = int(request.GET["min_views"])
-	min_comments = int(request.GET["min_comments"])
-
 
 #	positions = dict()
 
@@ -41,7 +38,7 @@ def analyze(request):
 	for next_point in timerange[1:len(timerange)]:
 
 
-		result = search.search(query,min_comments,min_views,cur_point,next_point,16,rank_cache)
+		result = search.search(query,cur_point,next_point,16,rank_cache)
 		cur_point = next_point
 
 #		if result["subset"]:
