@@ -2,15 +2,16 @@
 
 import time
 import datetime
+import traceback
 
 from lxml.html import document_fromstring
 from lxml.html.clean import clean_html
 
-from collector.core import Worker
-from collector.core import WkTextDataFetcher
-from collector.core import WkParser
-from collector.core import Behavior
-from collector.core import SqlReader
+from collector import Worker
+from collector import WkTextDataFetcher
+from collector import WkParser
+from collector import Behavior
+from collector import SqlReader
 
 from distr.bi.protocol_pb2 import JobRiverUri
 from distr.bi.protocol_pb2 import JobRawRiver
@@ -95,7 +96,6 @@ class WkRiverParser(WkParser):
 
 	def extract_time(self, post_et):
 		s = self.find_class(post_et,"date")[0].text
-		t = None
 		try:
 			t = datetime.datetime.strptime(s,"%b. %d, %Y, %I:%M %p")
 		except:
@@ -111,29 +111,36 @@ class WkRiverParser(WkParser):
 	def extract_comments(self, post_et):
 		byline = self.find_class(post_et,"byline")[0]
 		for el in byline:
-			if el.tag == "nobr" and el.get("title") == "Read comments":
+			if el.tag == "span" and el.get("class") == "date-heat":
 				for el2 in el:
-					if el2.tag == "a" and el2.get("class") == "comment_count":
-						if el2.text:
-							return int(el2.text)
-						return 0
+					if el2.tag == "nobr" and el2.get("title") == "Read comments":
+						for el3 in el2:
+							if el3.tag == "a" and el3.get("class") == "comment_count":
+								if el3.text:
+									return int(el3.text)
+								return 0
 		return 0
 
 	def extract_views(self, post_et):
 		byline = self.find_class(post_et,"byline")[0]
 		for el in byline:
-			if el.tag == "nobr":
+			if el.tag == "span" and el.get("class") == "date-heat":
 				for el2 in el:
-					if el2.tag == "span" and el2.get("title") == "views":
-						if el2.text:
-							text = el2.text.replace(",","")
-							return int(text)
-						return 0
+					if el2.tag == "nobr":
+						for el3 in el2:
+							if el3.tag == "span" and el3.get("title") == "views":
+								if el3.text:
+									text = el3.text.replace(",","")
+									return int(text)
+								return 0
 		return 0
 
 	def target(self, task):
 
 		self.log("start parse river")
+
+		if task.name != "task.river_raw":
+			self.log("error name is " + task.name)
 
 		html = task.job.html
 		river_doc = document_fromstring(html)
@@ -164,11 +171,11 @@ class WkRiverParser(WkParser):
 						new_job.uri = uri
 						new_job.title = title
 						new_job.time = tm
-						new_job.views_qti = views
-						new_job.comments_qti = comments
+						new_job.views = views
+						new_job.comments = comments
 						new_job.short_text = short_text
 						if image_uri is not None:
-							new_job.post_image_uri = image_uri
+							new_job.image_uri = image_uri
 
 						tasks.append(TaskRawTopic(new_job))
 
@@ -178,7 +185,7 @@ class WkRiverParser(WkParser):
 					#					new_author.uri = uri
 					#					new_author.type = DataAuthor.TOPIC
 					except:
-						pass
+						traceback.print_exc()
 
 		self.log("finish parse river")
 

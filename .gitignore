@@ -24,10 +24,3 @@
 *.settings
 *.tmproj
 *.idea
-collector/core/collect*
-collector/core/crawl*
-collector/data/*
-collector/models/*
-collector/utils/*
-collector/core/model/*
-

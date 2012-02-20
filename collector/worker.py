@@ -2,9 +2,11 @@
 # This module contains some generic worker types such as an html fetcher
 
 import urllib2
-from collector.core.service import Worker
+from collector.service import Worker
+from collector.service import Behavior
 
 class WkTextDataFetcher(Worker):
+	behavior_mode = Behavior.THREAD
 	name = "worker.fetcher"
 	fetch_timeout = 45
 	def_enc = "utf-8"
@@ -22,6 +24,8 @@ class WkTextDataFetcher(Worker):
 		return text_data
 
 class WkParser(Worker):
+	immortal = True
+	behavior_mode = Behavior.PROC
 	name = "worker.parser"
 	text_content_allowed_containers = {"p", "ul", "ol", "dl", "strong", "span", "a"}
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 
-from collector.core.task import Task
+from collector.task import Task
 
 from distr.bi.protocol_pb2 import JobRiverRange
 from distr.bi.protocol_pb2 import JobRiverUri

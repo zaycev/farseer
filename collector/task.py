@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from collector_pb2 import Job, JobMeta, JobExample, JobOrmReaderRange
-from collector.core.orm import PROTO_BUFF_SQL_MAP
+from collector.orm import PROTO_BUFF_SQL_MAP
 from google.protobuf.descriptor import FieldDescriptor
 from sqlalchemy import Column, Integer
 import pickle
@@ -20,10 +20,9 @@ class Task(object):
 	def __init__(self, job_proto=None):
 		time = T.time() + T.timezone
 		self.job = self.jobt()
-		self.fails_counter = 0
 		if job_proto:
 			self.job.CopyFrom(job_proto)
-		meta = JobMeta(time=time, name=self.name)
+		meta = JobMeta(time=time, name=self.name, fails=0)
 		self.job.meta.CopyFrom(meta)
 
 	def __getstate__(self):
@@ -57,33 +56,59 @@ class Task(object):
 	def __str__(self):
 		return self.__unicode__()
 
+	@staticmethod
+	def __extract_fields__(job):
+		"""
+		Extracts not null fields as list of tuples of the form
+		(<name>, <type>, <value>). If job class has nested
+		messages, their internal fields names will be transformed
+		using the following formula: <message name> + _ + <file name>.
+		"""
+		fields = []
+		for field_descr, field_val in job.ListFields():
+			if field_descr.type == FieldDescriptor.TYPE_MESSAGE:
+				new_fields = Task.__extract_fields__(field_val)
+				for field_name, field_type, field_val in new_fields:
+					fields.append((field_descr.name + "_" + field_name, field_type, field_val))
+			else:
+				fields.append((field_descr.name, field_descr.type, field_val))
+		return fields
+
+
 	def __columns__(self):
+		"""
+		Returns list of colums representing self job
+		message class. Colums has type of SqlAlchemy Column
+		"""
 		cols=[Column('id', Integer, primary_key=True, autoincrement=True)]
-		for field_descr, _ in self.job.ListFields():
+		fields = Task.__extract_fields__(self.job)
+		for field_name, field_type, _ in fields:
 			if self.sql_exclude_fields is not None and\
-			   field_descr.name in self.sql_exclude_fields:
+			   field_name in self.sql_exclude_fields:
 				pass
 			else:
 				if self.sql_type_map is not None and\
-					field_descr.name in self.sql_type_map:
-					sql_type = self.sql_type_map[field_descr.name]
+					field_name in self.sql_type_map:
+					sql_type = self.sql_type_map[field_name]
 				else:
-					sql_type = PROTO_BUFF_SQL_MAP[field_descr.type]
+					sql_type = PROTO_BUFF_SQL_MAP[field_type]
 				if sql_type is not None:
-					cols.append(Column(field_descr.name, sql_type, primary_key=False))
+					cols.append(Column(field_name, sql_type, primary_key=False))
 		return cols
 
 	def copy_to(self, object):
-		for field_descr, val in self.job.ListFields():
+		fields = Task.__extract_fields__(self.job)
+		for field_name, field_type, field_val in fields:
 			if self.sql_exclude_fields is not None and\
-			   field_descr.name in self.sql_exclude_fields:
+			   field_name in self.sql_exclude_fields:
 				pass
 			else:
-				value = val
 				if self.sql_value_map and\
-				   field_descr.name in self.sql_value_map:
-					value = self.sql_value_map[field_descr.name](value)
-				setattr(object, field_descr.name, value)
+				   field_name in self.sql_value_map:
+					value = self.sql_value_map[field_name](field_val)
+				else:
+					value = field_val
+				setattr(object, field_name, value)
 
 def deserialize(task_blob):
 	return pickle.loads(task_blob)

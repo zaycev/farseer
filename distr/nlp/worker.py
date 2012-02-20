@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from collector.core import Worker
+from collector import Worker
 
 #from nltk import LancasterStemmer
 #from nltk import PorterStemmer
