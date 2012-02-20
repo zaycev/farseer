@@ -55,7 +55,7 @@ class QConnPool(object):
 		self.__sys_conn.flushdb()
 		logging.debug("now redis db size is {0}".format(self.__sys_conn.dbsize()))
 
-	def allocate_queue(self, max_size=512):
+	def allocate_queue(self, max_size=2048):
 		name = gen_key()
 		return lambda: RQueue(self, name, max_size)
 

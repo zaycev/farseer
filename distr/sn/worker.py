@@ -32,22 +32,27 @@ class WkSNDataFetcher(WkTextDataFetcher):
 			# fetch data
 			fb_raw = self.fetch_text(self.fb_uri.format(uri))
 			tw_raw = self.fetch_text(self.tw_uri.format(uri))
-			tp_raw = self.fetch_text(self.tp_uri.format(uri))
+			try:
+				tp_raw = self.fetch_text(self.tp_uri.format(uri))
+			except:
+				tp_raw = None
 			su_raw = self.fetch_text(self.su_uri.format(uri))
 			li_raw = self.fetch_text(self.li_uri.format(uri))
 			dg_raw = self.fetch_text(self.dg_uri.format(uri))
 			# parse data
 			response_raw.fb = fb_raw
 			response_raw.tw = tw_raw
-			response_raw.tp = tp_raw
+			if tw_raw:
+				response_raw.tp = tp_raw
 			response_raw.su = su_raw
 			response_raw.li = li_raw
 			response_raw.dg = dg_raw
 			# store data
 			response.fb = json.loads(fb_raw).get("shares", 0)
 			response.tw = json.loads(tw_raw).get("count", 0)
-			response.t1 = json.loads(tp_raw).get("response",{"all":0}).get("all", 0)
-			response.t2 = json.loads(tp_raw).get("response",{"influential":0}).get("influential",0)
+			if tp_raw:
+				response.t1 = json.loads(tp_raw).get("response",{"all":0}).get("all", 0)
+				response.t2 = json.loads(tp_raw).get("response",{"influential":0}).get("influential",0)
 			response.su = int(json.loads(su_raw).get("result", {"views":0}).get("views", 0))
 			response.li = json.loads(li_raw[26:len(li_raw)]).get("count",0)
 			response.dg = json.loads(dg_raw[19:-2]).get("diggs",0)
