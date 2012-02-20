@@ -47,7 +47,7 @@ class QConnPool(object):
 			port=DATABASE_CONFIG["redis"].get("port", 6379),
 			host=DATABASE_CONFIG["redis"].get("host", "127.0.0.1"),
 		)
-		self.__sys_conn = redis.StrictRedis(connection_pool=self.__pool)
+		self.__sys_conn = redis.Redis(connection_pool=self.__pool)
 
 
 	def flush_db(self):
@@ -83,6 +83,7 @@ class RQueue:
 		task_blob = self.conn.rpop(self.name)
 		if task_blob:
 			try:
+				task = deserialize(task_blob)
 				task = deserialize(task_blob)
 				return task
 			except:
