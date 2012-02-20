@@ -137,11 +137,6 @@ class WkRiverParser(WkParser):
 
 	def target(self, task):
 
-		self.log("start parse river")
-
-		if task.name != "task.river_raw":
-			self.log("error name is " + task.name)
-
 		html = task.job.html
 		river_doc = document_fromstring(html)
 		river = river_doc.find_class("river")[0]
@@ -186,9 +181,6 @@ class WkRiverParser(WkParser):
 					#					new_author.type = DataAuthor.TOPIC
 					except:
 						traceback.print_exc()
-
-		self.log("finish parse river")
-
 		return tasks
 
 class WkTopicFetcher(WkTextDataFetcher):

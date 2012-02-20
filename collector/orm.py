@@ -95,7 +95,6 @@ class SqlWriter(SqlWorker):
 			tab_type = mailbox.db_tabs[task.name][1]
 		tmp = tab_type()
 		task.copy_to(tmp)
-#		mailbox.db_session.begin()
 		mailbox.db_session.add(tmp)
 		mailbox.db_session.commit()
 		mailbox.db_session.flush()

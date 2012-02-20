@@ -87,17 +87,3 @@ class RQueue:
 				return task
 			except:
 				logging.debug("task deserialization error, task={0}, name={1}".format(task_blob, self.name))
-
-#		while True:
-#			if self.conn.llen(self.name) > 0:
-#				task_blob = self.conn.rpop(self.name)
-#				if task_blob:
-#					try:
-#						task = deserialize(task_blob)
-#						return task
-#					except:
-#						logging.debug("task deserialization error, task={0}, name={1}".format(task_blob, self.name))
-#				else:
-#					time.sleep(self.timeout)
-#			else:
-#				time.sleep(self.timeout)

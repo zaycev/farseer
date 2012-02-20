@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-# This module contains some generic worker types such as an html fetcher
+# This module contains some generic worker types
+# such as an html fetcher and parser
 
 import urllib2
 from collector.service import Worker

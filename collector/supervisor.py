@@ -86,6 +86,7 @@ class CollectorSupervisor:
 			persistents[k].run()
 		logging.debug("done - workers activation")
 
+
 		# step 5
 		# bootstraping
 		qpool.initialize()
@@ -96,7 +97,6 @@ class CollectorSupervisor:
 		bq_task = bq_task_class(**bq_task_params)
 		bq = bq()
 		bq.put(bq_task)
-#		print "BQ {0}".format(bq.name)
 		logging.debug("done - bootstrapping")
 
 

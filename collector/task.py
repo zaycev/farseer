@@ -59,10 +59,10 @@ class Task(object):
 	@staticmethod
 	def __extract_fields__(job):
 		"""
-		Extracts not null fields as list of tuples of the form
-		(<name>, <type>, <value>). If job class has nested
-		messages, their internal fields names will be transformed
-		using the following formula: <message name> + _ + <file name>.
+		Extracts not null fields as a list of tuples where each tuple
+		is (<name>, <type>, <value>). If job class has nested
+		messages, their internal field names will be transformed
+		using the following formula: <message name> + _ + <field name>.
 		"""
 		fields = []
 		for field_descr, field_val in job.ListFields():
@@ -77,8 +77,8 @@ class Task(object):
 
 	def __columns__(self):
 		"""
-		Returns list of colums representing self job
-		message class. Colums has type of SqlAlchemy Column
+		Returns a list of colums representing self job
+		message class. Colums have type of SqlAlchemy Column
 		"""
 		cols=[Column('id', Integer, primary_key=True, autoincrement=True)]
 		fields = Task.__extract_fields__(self.job)
@@ -112,11 +112,3 @@ class Task(object):
 
 def deserialize(task_blob):
 	return pickle.loads(task_blob)
-
-class TaskExample(Task):
-	name = "sys.task.example"
-	jobt = JobExample
-
-class OrmReaderRange(Task):
-	name = "sys.task.orm_reader_range"
-	jobt = JobOrmReaderRange

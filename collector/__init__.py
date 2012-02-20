@@ -4,7 +4,6 @@ from collector.supervisor import CollectorSupervisor
 from collector.service import Worker
 from collector.service import Behavior
 from collector.task import Task
-from collector.task import OrmReaderRange
 from collector.worker import WkTextDataFetcher
 from collector.worker import WkParser
 from collector.orm import SqlWriter
