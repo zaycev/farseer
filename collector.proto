@@ -47,12 +47,13 @@ message DataRSR {
 
 /* social response */
 message DataSR {
-	optional int32 fb = 1;						/* Facebook*/
-	optional int32 tw = 2;						/* Twitter*/
-	optional int32 t1 = 3;						/* Topsy All*/
-	optional int32 t2 = 4;						/* Topsy Influential*/
-	optional int32 su = 5;						/* StumbleUpon*/
-	optional int32 dg = 6;						/* Digg*/
-	optional int32 gp = 7;						/* GooglePlus*/
-	optional int32 li = 8;						/* LinkedIn*/
+	optional int32 fb_com	= 1;						/* Facebook comments */
+	optional int32 fb_shr	= 2;						/* Facebook shares */
+	optional int32 tw		= 3;						/* Twitter */
+	optional int32 tp_all	= 4;						/* Topsy all */
+	optional int32 tp_inf	= 5;						/* Topsy influential */
+	optional int32 su		= 6;						/* StumbleUpon */
+	optional int32 dg		= 7;						/* Digg */
+	optional int32 gp		= 8;						/* GooglePlus count */
+	optional int32 li		= 9;						/* LinkedIn count */
 }
