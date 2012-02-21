@@ -12,6 +12,7 @@ message JobMeta {
 	required string name	= 1;
 	required float	time	= 2	[default = 0];
 	required uint32 fails	= 3 [default = 0];
+	optional uint32 handle	= 4 [default = 0];
 
 	/*optional uint32	id		= 2	[default = 0];
 	optional uint32	type	= 3	[default = 0];
