@@ -53,11 +53,15 @@ class CollectorSupervisor:
 		# assign connections to workers
 		last_quque = bq
 		persistents = {}
+		# use a counter to check if the last pool
+		# and do not create an output queue for it
+		pools_counter = 1
 		for pool in worker_pools:
 			new_queue = qpool.allocate_queue()
 			for unit in pool["units"]:
 				unit.mailbox.input_queue = last_quque
-				unit.mailbox.output_queues.append(new_queue)
+				if pools_counter != len(worker_pools):
+					unit.mailbox.output_queues.append(new_queue)
 				# if worker requires persistent store
 				# create or get one and add it to
 				# the worker as an output queue
@@ -74,6 +78,7 @@ class CollectorSupervisor:
 					# unit's list of output queues
 					unit.mailbox.output_queues.append(ps_store.mailbox.input_queue)
 			last_quque = new_queue
+			pools_counter += 1
 		logging.debug("done - connections assigning")
 
 

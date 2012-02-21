@@ -8,7 +8,8 @@ import pickle
 import time as T
 
 class Task(object):
-	max_print_str_length = 256
+	max_print_str_length = 192
+	max_fails = 512
 	name = "sys.task.base"
 	jobt = Job
 

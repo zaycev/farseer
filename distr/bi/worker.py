@@ -10,7 +10,6 @@ from lxml.html.clean import clean_html
 from collector import Worker
 from collector import WkTextDataFetcher
 from collector import WkParser
-from collector import Behavior
 from collector import SqlReader
 
 from distr.bi.protocol_pb2 import JobRiverUri
@@ -54,6 +53,7 @@ class WkRiverUriFormer(Worker):
 
 class WkRiverFetcher(WkTextDataFetcher):
 	name = "worker.river_fetcher"
+	def_enc = "ISO-8859-1"
 
 	def target(self, task):
 		html = self.fetch_text(task.job.uri)
@@ -185,6 +185,7 @@ class WkRiverParser(WkParser):
 
 class WkTopicFetcher(WkTextDataFetcher):
 	name = "worker.topic_fetcher"
+	def_enc = "ISO-8859-1"
 
 	def target(self, task):
 		html = self.fetch_text(task.job.uri)
@@ -200,6 +201,7 @@ class WkTopicParser(WkParser):
 		content_el = river_doc.find_class("KonaBody post-content")[0]
 		task.job.html = html
 		task.job.full_text = self.text_content(content_el)
+		task.job.html = "z"
 		return [task]
 
 class WkRawTopicReader(SqlReader):

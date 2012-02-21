@@ -55,7 +55,9 @@ class QConnPool(object):
 		self.__sys_conn.flushdb()
 		logging.debug("now redis db size is {0}".format(self.__sys_conn.dbsize()))
 
-	def allocate_queue(self, max_size=2048):
+	def allocate_queue(self, max_size=-1):
+		if max_size==-1:
+			max_size = DATABASE_CONFIG["redis"].get("queue_size", 64)
 		name = gen_key()
 		return lambda: RQueue(self, name, max_size)
 
@@ -77,13 +79,14 @@ class RQueue:
 		return self.conn.llen(self.name)
 
 	def put(self, task):
+		while self.conn.llen(self.name) > self.size:
+			time.sleep(self.timeout)
 		self.conn.lpush(self.name, task.serialize())
 
 	def get(self):
 		task_blob = self.conn.rpop(self.name)
 		if task_blob:
 			try:
-				task = deserialize(task_blob)
 				task = deserialize(task_blob)
 				return task
 			except:

@@ -37,7 +37,7 @@ class TaskRawTopic(Task):
 	jobt = JobRawTopic
 	sql_table_name = "news"
 	sql_exclude_fields = {"html"}
-	sql_type_map = {"post_time": DateTime}
+	sql_type_map = {"time": DateTime}
 	sql_value_map = {
-		"post_time": lambda float_time: datetime.datetime.fromtimestamp(float_time)
+		"time": lambda float_time: datetime.datetime.fromtimestamp(float_time)
 	}
