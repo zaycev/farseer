@@ -1,5 +1,6 @@
 package collector;
 
+
 message JobMeta {
 	enum JobStatus {
 		NOT_STARTED = 0;
@@ -19,19 +20,23 @@ message JobMeta {
 	optional JobStatus status = 7 [default = NOT_STARTED];*/
 }
 
+
 message Job {
 	required JobMeta meta = 1;
 }
+
 
 message JobExample {
 	required JobMeta meta = 1;
 	optional string text = 2;
 }
 
+
 message JobOrmReaderRange {
 	required JobMeta meta = 1;
 	optional uint32 size = 2;					/* (from) start page*/
 }
+
 
 /* raw social response */
 message DataRSR {
@@ -44,6 +49,7 @@ message DataRSR {
 	optional string li = 7;						/* LinkedIn*/
 	optional string sc = 8;						/* SocialCounter*/
 }
+
 
 /* social response */
 message DataSR {
