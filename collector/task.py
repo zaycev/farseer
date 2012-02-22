@@ -9,7 +9,7 @@ import time as T
 
 class Task(object):
 	max_print_str_length = 192
-	max_fails = 512
+	max_fails = 256
 	name = "sys.task.base"
 	jobt = Job
 

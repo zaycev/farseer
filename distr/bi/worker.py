@@ -99,9 +99,12 @@ class WkRiverParser(WkParser):
 		try:
 			t = datetime.datetime.strptime(s,"%b. %d, %Y, %I:%M %p")
 		except:
-			dt = datetime.datetime.strptime(s,"%b. %d, %I:%M %p")
-			year = datetime.datetime.now().year
-			t = datetime.datetime(year, dt.month, dt.day, dt.hour, dt.minute)
+			try:
+				t = datetime.datetime.strptime(s,"%b %d, %Y, %I:%M %p")
+			except:
+				dt = datetime.datetime.strptime(s,"%b. %d, %I:%M %p")
+				year = datetime.datetime.now().year
+				t = datetime.datetime(year, dt.month, dt.day, dt.hour, dt.minute)
 		return time.mktime(t.timetuple()) if t else 0
 
 	def extract_short_text(self, post_et):
