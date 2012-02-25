@@ -14,15 +14,12 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from analyzer.nlp import tokenize
 
-
 import logging
 import sys
 
 DEFAULT_WEIGHT_SCHEMA = (
-
 #	input table			tf-idf
-# 	column nane			weight
-
+# 	column name			weight
 	("title",			0.5),
 	("short_text",		0.4),
 	("full_text",		0.1),
@@ -34,15 +31,18 @@ def lexicon(input_table_name="set_input",
 			lexicon_table_name="set_lexicon",
 			weight_schema=DEFAULT_WEIGHT_SCHEMA,
 			verbose=True):
-	'''
-		This function takes documents from input table,
-		extracts terms from specified in weight_schema
-		fields and saves terms with calculated frequencies
-		in output table.
-	'''
+	"""
+	This function takes documents from input table,
+	extracts terms from specified in weight_schema
+	fields and saves terms with calculated frequencies
+	in output table.
+	"""
+
 
 	# step 1
-	# establish database connection
+	# Establishing database connection and creating
+	# an orm environment - classes fpr input and output
+	# table mapping.
 	logging.debug("establish database connection")
 	db_url = URL(
 		DATABASE_CONFIG["repository"]["driver"],
@@ -50,8 +50,7 @@ def lexicon(input_table_name="set_input",
 		password=DATABASE_CONFIG["repository"]["password"],
 		host=DATABASE_CONFIG["repository"]["host"],
 		port=DATABASE_CONFIG["repository"]["port"],
-		database=DATABASE_CONFIG["repository"]["database"],
-	)
+		database=DATABASE_CONFIG["repository"]["database"],)
 	db_base = Base = declarative_base()
 	db_engine = create_engine(db_url)
 	db_session = sessionmaker(bind=db_engine, autocommit=False, autoflush=False)()
@@ -74,22 +73,24 @@ def lexicon(input_table_name="set_input",
 	corpus_class_fields["__tablename__"] = input_table_name
 	CorpusDoc = type("CorpusDoc", (db_base,), corpus_class_fields)
 
+
 	# step 2
-	# create or truncate target (lexicon) table
+	# Creating or truncating the target (lexicon) table.
 	logging.debug("create or truncate target (lexicon) table")
 	db_base.metadata.create_all(db_engine)
 	db_session.query(LexiconTerm).delete()
 
+
 	# step 3
-	# retrieving corpus (input) size
+	# Retrieving corpus (input data) size.
 	logging.debug("retrieving corpus (input) size")
 	corpus_sz = db_session.query(func.count("id")).select_from(CorpusDoc).scalar()
 	logging.debug("corpus size is {0}".format(corpus_sz))
 
 
 	# step 4
-	# retrieve documents from corpus(input table)
-	# and calculate TF-IDF using weight schema
+	# Retrieve documents from corpus and
+	# calculating different kinds term frequencies.
 	logging.debug("start retrieve documents from the corpus")
 	if verbose:
 		progress_bar_sz = 80
@@ -101,13 +102,13 @@ def lexicon(input_table_name="set_input",
 		sys.stdout.flush()
 	terms_dict = dict()
 	for doc in db_session.query(CorpusDoc).order_by("time").yield_per(128):
-
-		doc_occurrences = set()
-
-		# getting texts from doc and assigning appropriate weights
+		# Getting texts from document and assigning appropriate weights.
 		texts = [(param[1], getattr(doc, param[0])) for param in weight_schema]
-
-		# tokenizing texts
+		# Use this set to account terms which were already
+		# occurred in the given document to not count them
+		# twice.
+		doc_occurrences = set()
+		# Extracting terms from texts.
 		for weight, text in texts:
 			terms = tokenize(text)
 			for term in terms:
@@ -120,15 +121,18 @@ def lexicon(input_table_name="set_input",
 				if term not in doc_occurrences:
 					doc_occurrences.add(term)
 					lex_term.dfreq += 1
-
 		if verbose:
 			loop_steps += 1
 			if loop_steps % loop_step_size == 0:
 				sys.stdout.write("#")
 				sys.stdout.flush()
+	if verbose:
+		sys.stdout.write("\n")
+		sys.stdout.flush()
+
 
 	# step 4
-	# saving terms
+	# Saving terms.
 	logging.debug("recounting terms")
 	i = 1
 	corpus_sz_f = float(corpus_sz)
