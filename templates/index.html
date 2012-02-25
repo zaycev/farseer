@@ -11,6 +11,9 @@
 		<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
 		<![endif]-->
 
+		<!-- Le JavaScript -->
+		<script src="/www/js/jquery-1.7.1.min.js"></script>
+
 		<!-- Le styles -->
 		<link href="/www/css/bootstrap.css" rel="stylesheet">
 		<style type="text/css">
@@ -33,6 +36,28 @@
 			.navbar-fixed-top .brand:hover {
 				text-decoration: none;
 			}
+
+			/*.light-start {*/
+				/*-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);*/
+				/*-moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);*/
+				/*box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);*/
+				/*-webkit-transition: border linear 0.2s, box-shadow linear 0.2s;*/
+				/*-moz-transition: border linear 0.2s, box-shadow linear 0.2s;*/
+				/*-ms-transition: border linear 0.2s, box-shadow linear 0.2s;*/
+				/*-o-transition: border linear 0.2s, box-shadow linear 0.2s;*/
+				/*transition: border linear 0.2s, box-shadow linear 0.2s;*/
+			/*}*/
+
+			/*.light-start:hover {*/
+				/*border-color: rgba(70, 165, 70, 0.8);*/
+				/*-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgba(70, 165, 70, 0.8);*/
+				/*-moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgba(70, 165, 70, 0.8);*/
+				/*box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgba(70, 165, 70, 0.8);*/
+				/*outline: 0;*/
+				/*outline: thin dotted \9;*/
+			/*}*/
+
+
 		</style>
 		<link href="/www/css/bootstrap-responsive.css" rel="stylesheet">
 
@@ -43,77 +68,110 @@
 		<div class="navbar navbar-fixed-top">
 			<div class="navbar-inner">
 				<div class="container">
+					<div class="nav-collapse">
+						<ul class="nav">
+							<li>
+								<a href="/">App</a>
+							</li>
+							<li>
+								<a href="/">Overview</a>
+							</li>
+							<li>
+								<a href="http://91.193.218.140:8082/">Wiki</a>
+							</li>
+						</ul>
+					</div>
 					<a class="brand" href="/">Farseer Project</a>
 				</div>
 			</div>
 		</div>
 
-		<div class="container">
-			<div class="hero-unit">
-				<!--<h1 style="margin-bottom: 64px;">Google with blackjack and whores</h1>-->
-				<form action="/analyze" class="well form-horizontal">
+		<div class="container" style="width:680px;margin:0 auto 0 auto;">
+
+
+			<div class="row">
+				<div style="width:512px;margin: 64px auto 32px auto;">
+					<img class="light-start" src="/www/img/farseer-logo.png"/>
+				</div>
+			</div>
+
+			<br/>
+
+			<div class="row">
+
+				<form action="/analyze" class="form-horizontal">
 					<fieldset>
 						<div class="control-group">
-							<label class="control-label">Text query</label>
+							<!--<label class="control-label">Text query</label>-->
 							<div class="controls">
-								<input name="text_query" class="input span5" type="text"/>
+								<input name="text_query" class="input" style="width:348px;" type="text"/>
+								<!--type="submit"-->
+								<button id="submit-button"  class="btn">
+									<i class="icon-th"></i>
+								</button>
 							</div>
 						</div>
-						<div class="control-group">
-							<label class="control-label">Time period</label>
-							<div class="controls">
-								<select name="start_year" style="width:64px;">
-									<option>2011</option>
-									{% for y in years %}
-										<option>{{ y }}</option>
-									{% endfor %}
-								</select>
-								<select name="start_month" style="width:64px;">
-									<option>10</option>
-									{% for m in months %}
-										<option>{% if m < 10 %}0{% endif %}{{ m }}</option>
-									{% endfor %}
-								</select>
-								-
-								<select name="end_year" style="width:64px;">
-									<option>2012</option>
-									{% for y in years %}
-										<option>{{ y }}</option>
-									{% endfor %}
-								</select>
-								<select name="end_month" style="width:64px;">
-									<option>02</option>
-									{% for m in months %}
-										<option>{% if m < 10 %}0{% endif %}{{ m }}</option>
-									{% endfor %}
-								</select>
-								display by
-								<select name="group_size" style="width:100px;">
-									<option value="1">1 month</option>
-									<option value="2">2 months</option>
-									<option value="3">3 months</option>
-									<option value="4">4 months</option>
-									<option value="5">5 months</option>
-									<option value="6">6 months</option>
-									<option value="12">12 months</option>
-								</select>
-							</div>
-						</div>
-						<div class="form-actions">
-							<button type="submit" class="btn btn-primary">Analyze</button>
-						</div>
+						<!--<div class="control-group">-->
+							<!--<label class="control-label">Time period</label>-->
+							<!--<div class="controls">-->
+								<!--<select name="start_year" style="width:64px;">-->
+									<!--<option>2011</option>-->
+									<!--{% for y in years %}-->
+									<!--<option>{{ y }}</option>-->
+									<!--{% endfor %}-->
+								<!--</select>-->
+								<!--<select name="start_month" style="width:64px;">-->
+									<!--<option>10</option>-->
+									<!--{% for m in months %}-->
+									<!--<option>{% if m < 10 %}0{% endif %}{{ m }}</option>-->
+									<!--{% endfor %}-->
+								<!--</select>-->
+								<!----->
+								<!--<select name="end_year" style="width:64px;">-->
+									<!--<option>2012</option>-->
+									<!--{% for y in years %}-->
+									<!--<option>{{ y }}</option>-->
+									<!--{% endfor %}-->
+								<!--</select>-->
+								<!--<select name="end_month" style="width:64px;">-->
+									<!--<option>02</option>-->
+									<!--{% for m in months %}-->
+									<!--<option>{% if m < 10 %}0{% endif %}{{ m }}</option>-->
+									<!--{% endfor %}-->
+								<!--</select>-->
+								<!--display by-->
+								<!--<select name="group_size" style="width:100px;">-->
+									<!--<option value="1">1 month</option>-->
+									<!--<option value="2">2 months</option>-->
+									<!--<option value="3">3 months</option>-->
+									<!--<option value="4">4 months</option>-->
+									<!--<option value="5">5 months</option>-->
+									<!--<option value="6">6 months</option>-->
+									<!--<option value="12">12 months</option>-->
+								<!--</select>-->
+							<!--</div>-->
+						<!--</div>-->
 					</fieldset>
 				</form>
 			</div>
 
-			<hr>
+
+			<hr style="margin: 100px 0 48px 0;"/>
+
 			<footer>
-				<p>&copy; Farsser Project 2012, <a href="http://91.193.218.140:8082/">wiki</a></p>
+				<p style="margin:32px 0 128px 0;">
+					&copy; Farsser Project 2012,
+					<a href="http://91.193.218.140:8082/">wiki</a>
+				</p>
 			</footer>
 
 		</div>
-		<script src="/www/js/bootstrap-transition.js"></script>
-		<script src="/www/js/bootstrap-collapse.js"></script>
+		
+		<script>
+			$("#submit-button").bind("click", function(){
+				$(this).attr("disabled", "disabled");
+			});
+		</script>
 
 	</body>
 </html>

@@ -166,7 +166,7 @@ for title, short, full in docs:
 				indexed_terms.add(tid)
 	document_counter += 1
 	docs_progress += 1
-	if docs_progress >= docs_progress_indicator:
+ 	if docs_progress >= docs_progress_indicator:
 		docs_progress = 0
 		sys.stdout.write("#")
 		sys.stdout.flush()
