@@ -17,25 +17,20 @@ from analyzer.nlp import tokenize
 import logging
 import sys
 
-DEFAULT_WEIGHT_SCHEMA = (
-#	input table			tf-idf
-# 	column name			weight
-	("title",			0.5),
-	("short_text",		0.4),
-	("full_text",		0.1),
-
-)  
+DEFAULT_TEXT_FIELDS = ("title", "short_text", "full_text",)
 
 
 def lexicon(input_table_name="set_input",
 			lexicon_table_name="set_lexicon",
-			weight_schema=DEFAULT_WEIGHT_SCHEMA,
+			text_fields=DEFAULT_TEXT_FIELDS,
+			csv_output="/tmp/set_lexicon.csv",
 			verbose=True):
 	"""
 	This function takes documents from input table,
-	extracts terms from specified in weight_schema
+	extracts terms from specified in <text_fields>
 	fields and saves terms with calculated frequencies
-	in output table.
+	in output table. If csv_output is defined terms will
+	be saved to the csv file instead of lexicon table.
 	"""
 
 
@@ -51,9 +46,9 @@ def lexicon(input_table_name="set_input",
 		host=DATABASE_CONFIG["repository"]["host"],
 		port=DATABASE_CONFIG["repository"]["port"],
 		database=DATABASE_CONFIG["repository"]["database"],)
-	db_base = Base = declarative_base()
+	db_base = declarative_base()
 	db_engine = create_engine(db_url)
-	db_session = sessionmaker(bind=db_engine, autocommit=False, autoflush=False)()
+	db_session = sessionmaker(bind=db_engine, autoflush=False)()
 	class LexiconTerm(db_base):
 		__tablename__ = lexicon_table_name
 		id = Column(Integer, primary_key=True)		# lexicon term id
@@ -68,7 +63,7 @@ def lexicon(input_table_name="set_input",
 			self.rfreq = 0.0
 		def __repr__(self):
 			return "<LexiconTerm('{0}')>".format(self.term)
-	corpus_class_fields = {param[0]: Column(String) for param in weight_schema}
+	corpus_class_fields = {field_name: Column(String) for field_name in text_fields}
 	corpus_class_fields["id"] = Column(Integer, primary_key=True)
 	corpus_class_fields["__tablename__"] = input_table_name
 	CorpusDoc = type("CorpusDoc", (db_base,), corpus_class_fields)
@@ -102,14 +97,14 @@ def lexicon(input_table_name="set_input",
 		sys.stdout.flush()
 	terms_dict = dict()
 	for doc in db_session.query(CorpusDoc).order_by("time").yield_per(128):
-		# Getting texts from document and assigning appropriate weights.
-		texts = [(param[1], getattr(doc, param[0])) for param in weight_schema]
+		# Getting texts from document.
+		texts = [getattr(doc, text_field) for text_field in text_fields]
 		# Use this set to account terms which were already
 		# occurred in the given document to not count them
 		# twice.
 		doc_occurrences = set()
 		# Extracting terms from texts.
-		for weight, text in texts:
+		for text in texts:
 			terms = tokenize(text)
 			for term in terms:
 				if term not in terms_dict:
@@ -132,10 +127,11 @@ def lexicon(input_table_name="set_input",
 
 
 	# step 4
-	# Saving terms.
+	# Calculating relative frequencies and saving terms.
 	logging.debug("recounting terms")
 	i = 1
 	corpus_sz_f = float(corpus_sz)
+	logging.debug("lexicon has {0} terms".format(len(terms_dict)))
 	lex_terms = []
 	for term in terms_dict.keys():
 		lex_term = terms_dict[term]
@@ -144,6 +140,23 @@ def lexicon(input_table_name="set_input",
 		i += 1
 		lex_terms.append(lex_term)
 	logging.debug("saving terms")
-	db_session.add_all(lex_terms)
-	db_session.commit()
-	db_session.flush()
+	if csv_output:
+		csv_file = open(csv_output, "w")
+		cols = "id,term,tfreq,dfreq,rfreq\n"
+		pattern = u"{0},\"{1}\",{2},{3},{4:0.16f}\n"
+		csv_file.write(cols)
+		for l_term in lex_terms:
+			csv_file.write(
+				pattern.format(
+					l_term.id,
+					l_term.term,
+					l_term.tfreq,
+					l_term.dfreq,
+					l_term.rfreq
+				).encode("UTF-8")
+			)
+		csv_file.close()
+	else:
+		db_session.add_all(lex_terms)
+		db_session.commit()
+		db_session.flush()
