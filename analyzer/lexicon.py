@@ -84,7 +84,7 @@ def lexicon(input_tab="set_corpora",
 	if verbose:
 		for i in xrange(progress_bar_sz):
 			sys.stdout.write("–")
-			sys.stdout.write("\n")
+		sys.stdout.write("\n")
 		sys.stdout.flush()
 
 	for doc in db_session.query(CorpusDoc).order_by("id").yield_per(128):
