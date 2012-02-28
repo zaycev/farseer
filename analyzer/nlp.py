@@ -10,11 +10,15 @@ pattern = r'''(?x)[A-Z]\.)+
 |\$?\d+(\.\d+)?%?
 |\.\.\.
 |[][.,;\"'?():-_`]'''
+
+
 def make_tokenizer():
 	return WordPunctTokenizer()
 
 def assign_tags(tokens):
 	return [(token.lower(), tag) for token, tag in pos_tag(tokens)]
+
+SharedTokenizer = None
 
 
 #import re
