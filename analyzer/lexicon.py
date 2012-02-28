@@ -9,10 +9,11 @@ from sqlalchemy import Column, func
 from sqlalchemy.types import Integer, String
 from options import DATABASE_CONFIG
 from analyzer.term import DbBase, UntaggedTerm, TaggedTerm
-from analyzer.nlp import make_tokenizer, assign_tags
+from analyzer.nlp import make_tokenizer, make_tagger, assign_tags
 from analyzer.acessdb import make_environment
 from multiprocessing import Pool
 
+import analyzer.nlp as nlp
 import logging
 import sys
 
@@ -45,10 +46,10 @@ def lexicon(input_tab="set_corpora",
 	class LexiconTerm(term_class, DbBase):
 		__tablename__ = output_tab if output_tab else term_class.__tablename__
 	db_engine, db_session = make_environment(DATABASE_CONFIG["repository"])
-	corpus_class_fields = {field_name: Column(String) for field_name in text_fields}
-	corpus_class_fields["id"] = Column(Integer, primary_key=True)
-	corpus_class_fields["__tablename__"] = input_tab
-	CorpusDoc = type("CorpusDoc", (DbBase,), corpus_class_fields)
+	doc_class_fields = {field_name: Column(String) for field_name in text_fields}
+	doc_class_fields["id"] = Column(Integer, primary_key=True)
+	doc_class_fields["__tablename__"] = input_tab
+	TextDoc = type("TextDoc", (DbBase,), doc_class_fields)
 
 
 	# step 2
@@ -59,10 +60,10 @@ def lexicon(input_tab="set_corpora",
 
 
 	# step 3
-	# Retrieving corpus (input data) size.
+	# Retrieving corpora (input data) size.
 	logging.debug("retrieving corpora ({0}) set size".format(input_tab))
-	corpus_sz = db_session.query(func.count("id")).select_from(CorpusDoc).scalar()
-	logging.debug("corpus size is {0}".format(corpus_sz))
+	corpora_sz = db_session.query(func.count("id")).select_from(TextDoc).scalar()
+	logging.debug("corpora size is {0}".format(corpora_sz))
 
 
 	# step 4
@@ -70,24 +71,18 @@ def lexicon(input_tab="set_corpora",
 	logging.debug("setup processing environment")
 	pool = Pool(workers)
 	text_buff = []
-	term_lists = []
 	term_lists_handled = 0
 	terms_dict = dict()
 	if verbose:
-		progress_bar_sz = 80
-		loop_step_size = corpus_sz / progress_bar_sz
+		progress_bar_sz = 100
+		loop_step_size = corpora_sz / progress_bar_sz
 		loop_steps = 0
+
 
 	# step 5
 	# Retrieve documents from corpora and process them.
 	logging.debug("start retrieve data")
-	if verbose:
-		for i in xrange(progress_bar_sz):
-			sys.stdout.write("–")
-		sys.stdout.write("\n")
-		sys.stdout.flush()
-
-	for doc in db_session.query(CorpusDoc).order_by("id").yield_per(512):
+	for doc in db_session.query(TextDoc).order_by("id").yield_per(512):
 		texts = [getattr(doc, text_field) for text_field in text_fields]
 		for text in texts:
 			text_buff.append(text)
@@ -149,66 +144,19 @@ def lexicon(input_tab="set_corpora",
 				if term_key not in doc_occurrences:
 					doc_occurrences.add(term_key)
 					lex_term.dfreq += 1
-
-	text_buff = []
-	term_lists = []
-
-
-				#	count_terms(term_lists, term_dict)
-#	term_lists = pool.map(handle_document, 		text_buff)
-#	count_terms(term_lists, term_dict)
-
-
-		# populate doc queue
-#		if doc_queue.qsize() < buff_size:
-#			doc_queue.add(doc)
-
-#	doc_receiving_is_done = True
-#	pool.join()
-
-
-#		# Getting texts from document.
-#		texts = [getattr(doc, text_field) for text_field in text_fields]
-#		# Use this set to account terms which were already
-#		# occurred in the given document to not count them
-#		# twice.
-#		doc_occurrences = set()
-#		# Extracting terms from texts.
-#		for text in texts:
-#			terms = tokenizer.tokenize(text)
-#			if pos_tagging:
-#				terms = assign_tags(terms)
-#			for elem in terms:
-#				if pos_tagging:
-#					term, tag = elem
-#				else:
-#					term = elem
-#					tag = None
-#				term_key = term_class.make_key(term, tag)
-#				if term_key not in terms_dict:
-#					lex_term = LexiconTerm(term, tag)
-#					terms_dict[term_key] = lex_term
-#				else:
-#					lex_term = terms_dict[term_key]
-#				lex_term.tfreq += 1
-#				if term_key not in doc_occurrences:
-#					doc_occurrences.add(term_key)
-#					lex_term.dfreq += 1
-
-
-
-
+	# text_buff = []
+	# term_lists = []
 
 	# step 4
 	# Calculating relative frequencies and saving terms.
 	logging.debug("recounting terms")
 	i = 1
-	corpus_sz_f = float(corpus_sz)
+	corpora_sz_f = float(corpora_sz)
 	logging.debug("lexicon has {0} terms".format(len(terms_dict)))
 	lex_terms = []
 	for term in terms_dict.keys():
 		lex_term = terms_dict[term]
-		lex_term.rfreq = float(lex_term.dfreq) / corpus_sz_f
+		lex_term.rfreq = float(lex_term.dfreq) / corpora_sz_f
 		lex_term.id = i
 		i += 1
 		lex_terms.append(lex_term)
@@ -236,9 +184,21 @@ def lexicon(input_tab="set_corpora",
 		db_session.flush()
 
 
+def init_worker(pos_tagging):
+	if pos_tagging:
+		nlp.Tagger = make_tagger()
+	nlp.Tokenizer = make_tokenizer()
+
+
+def count_terms(text):
+	tokens = nlp.Tokenizer.tokenize(text)
+
+
+
 def tokenize(text):
 	tokenizer = make_tokenizer()
 	return tokenizer.tokenize(text)
+
 
 def pos_tag(token_list):
 	return assign_tags(token_list)
