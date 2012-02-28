@@ -25,8 +25,8 @@ def lexicon(input_tab="set_corpora",
 			csv_output=None,
 			verbose=True,
 			pos_tagging=True,
-			workers=5,
-			buff_size=100):
+			workers=7,
+			buff_size=1536):
 	"""
 	This function takes documents from input table,
 	extracts terms from specified in <text_fields>
@@ -87,7 +87,7 @@ def lexicon(input_tab="set_corpora",
 		sys.stdout.write("\n")
 		sys.stdout.flush()
 
-	for doc in db_session.query(CorpusDoc).order_by("id").yield_per(128):
+	for doc in db_session.query(CorpusDoc).order_by("id").yield_per(512):
 		texts = [getattr(doc, text_field) for text_field in text_fields]
 		for text in texts:
 			text_buff.append(text)
