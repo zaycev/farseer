@@ -77,15 +77,17 @@ def lexicon(input_tab="set_corpora",
 		progress_bar_sz = 80
 		loop_step_size = corpus_sz / progress_bar_sz
 		loop_steps = 0
-		for i in xrange(progress_bar_sz):
-			sys.stdout.write("–")
-		sys.stdout.write("\n")
-		sys.stdout.flush()
 
 	# step 5
 	# Retrieve documents from corpora and process them.
 	logging.debug("start retrieve data")
-	for doc in db_session.query(CorpusDoc).order_by("id").yield_per(128)[0:100]:
+	if verbose:
+		for i in xrange(progress_bar_sz):
+			sys.stdout.write("–")
+			sys.stdout.write("\n")
+		sys.stdout.flush()
+
+	for doc in db_session.query(CorpusDoc).order_by("id").yield_per(128):
 		texts = [getattr(doc, text_field) for text_field in text_fields]
 		for text in texts:
 			text_buff.append(text)
