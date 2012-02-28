@@ -113,6 +113,17 @@ def lexicon(input_tab="set_corpora",
 						doc_occurrences.add(term_key)
 						lex_term.dfreq += 1
 			text_buff = []
+		if verbose:
+			loop_steps += 1
+			if loop_steps % loop_step_size == 0:
+				sys.stdout.write("#")
+				sys.stdout.flush()
+
+	if verbose:
+		sys.stdout.write("\n")
+		sys.stdout.flush()
+
+
 	if len(text_buff) > 0:
 		term_lists = pool.map(tokenize, text_buff)
 		if pos_tagging:
@@ -181,17 +192,6 @@ def lexicon(input_tab="set_corpora",
 #				if term_key not in doc_occurrences:
 #					doc_occurrences.add(term_key)
 #					lex_term.dfreq += 1
-#		if verbose:
-#			loop_steps += 1
-#			if loop_steps % loop_step_size == 0:
-#				sys.stdout.write("#")
-#				sys.stdout.flush()
-
-
-
-#	if verbose:
-#		sys.stdout.write("\n")
-#		sys.stdout.flush()
 
 
 
