@@ -26,7 +26,7 @@ def lexicon(input_tab="set_corpora",
 			text_fields=DEFAULT_TEXT_FIELDS,
 			csv_output=None,
 			workers=4,
-			buff_size=64,
+			buff_size=128,
 			recount_buffer=16384):
 	"""
 	This function takes documents from input table,
@@ -77,8 +77,7 @@ def lexicon(input_tab="set_corpora",
 	# step 5
 	# Retrieve documents from corpora and process them.
 	logging.debug("start processing data")
-	corpora_sz = 1024
-	for doc in db_session.query(TextDoc).order_by("id").yield_per(buff_size * workers)[0:1024]:
+	for doc in db_session.query(TextDoc).order_by("id").yield_per(buff_size * workers):
 		docs_handled += 1
 		text_set = [getattr(doc, text_field) for text_field in text_fields]
 		text_buff.append(text_set)
@@ -97,13 +96,13 @@ def lexicon(input_tab="set_corpora",
 			text_buff = []
 			gc.collect()
 			elapsed = (datetime.datetime.now() - star_time).seconds
-			print "\t :: {0:2.2f}%\t {1} / {2}\t worktime {3} sec\t ave speed {4:0.2f} d / sec".format(
+			logging.debug("\t :: {0:2.2f}%\t {1} / {2}\t worktime {3} sec\t ave speed {4:0.2f} d / sec".format(
 				float(docs_handled * 100) / float(corpora_sz),
 				corpora_sz,
 				docs_handled,
 				elapsed,
 				float(docs_handled) / float(elapsed)
-			)
+			))
 
 
 	if len(text_buff) > buff_size:
@@ -123,13 +122,13 @@ def lexicon(input_tab="set_corpora",
 	gc.collect()
 
 	elapsed = (datetime.datetime.now() - star_time).seconds
-	print "\t :: {0:2.2f}%\t {1} / {2}\t worktime {3} sec\t ave speed {4:0.2f} d/sec".format(
+	logging.debug( "\t :: {0:2.2f}%\t {1} / {2}\t worktime {3} sec\t ave speed {4:0.2f} d/sec".format(
 		float(docs_handled * 100) / float(corpora_sz),
 		corpora_sz,
 		docs_handled,
 		elapsed,
 		float(docs_handled) / float(elapsed)
-	)
+	))
 
 	# step 4
 	# Calculating relative frequencies and saving terms.
@@ -153,23 +152,23 @@ def lexicon(input_tab="set_corpora",
 			db_session.commit()
 			db_session.flush()
 			elapsed = (datetime.datetime.now() - star_time).seconds
-			print "\t :: {0:2.2f}%\t {1} / {2}\t savetime {3} sec\t ave speed {4:0.2f} t/sec".format(
+			logging.debug( "\t :: {0:2.2f}%\t {1} / {2}\t savetime {3} sec\t ave speed {4:0.2f} t/sec".format(
 				float(terms_saved * 100) / float(terms_count),
 				terms_count,
 				terms_saved,
 				elapsed,
 				float(terms_saved) / float(elapsed)
-			)
+			))
 	db_session.commit()
 	db_session.flush()
 	elapsed = (datetime.datetime.now() - star_time).seconds
-	print "\t :: {0:2.2f}%\t {1} / {2}\t savetime {3} sec\t ave speed {4:0.2f} t/sec".format(
+	logging.debug( "\t :: {0:2.2f}%\t {1} / {2}\t savetime {3} sec\t ave speed {4:0.2f} t/sec".format(
 		float(terms_saved * 100) / float(terms_count),
 		terms_count,
 		terms_saved,
 		elapsed,
 		float(terms_saved) / float(elapsed)
-	)
+	))
 	logging.debug("done!\n")
 
 
