@@ -8,14 +8,15 @@
 from sqlalchemy import Column, func
 from sqlalchemy.types import Integer, String
 from options import DATABASE_CONFIG
-from analyzer.term import DbBase, UntaggedTerm, TaggedTerm
-from analyzer.nlp import make_tokenizer, make_tagger, assign_tags
+from analyzer.term import DbBase, TaggedTerm
+from analyzer.nlp import NlpUtil
 from analyzer.acessdb import make_environment
 from multiprocessing import Pool
 
 import analyzer.nlp as nlp
 import logging
-import sys
+import time, datetime
+import gc
 
 DEFAULT_TEXT_FIELDS = ("title", "short_text", "full_text",)
 
@@ -24,10 +25,9 @@ def lexicon(input_tab="set_corpora",
 			output_tab=None,
 			text_fields=DEFAULT_TEXT_FIELDS,
 			csv_output=None,
-			verbose=True,
-			pos_tagging=True,
-			workers=7,
-			buff_size=1536):
+			workers=4,
+			buff_size=64,
+			recount_buffer=16384):
 	"""
 	This function takes documents from input table,
 	extracts terms from specified in <text_fields>
@@ -36,13 +36,12 @@ def lexicon(input_tab="set_corpora",
 	be saved to the csv file instead of output table.
 	"""
 
-
 	# step 1
 	# Creating an ORM environment: establishing database
 	# connection, classes for input and output table
 	# mapping.
 	logging.debug("setup ORM environment")
-	term_class = TaggedTerm if pos_tagging else UntaggedTerm
+	term_class = TaggedTerm
 	class LexiconTerm(term_class, DbBase):
 		__tablename__ = output_tab if output_tab else term_class.__tablename__
 	db_engine, db_session = make_environment(DATABASE_CONFIG["repository"])
@@ -56,7 +55,7 @@ def lexicon(input_tab="set_corpora",
 	# Creating or truncating the target (output) table.
 	logging.debug("create or truncate target ({0}) table".format(output_tab))
 	DbBase.metadata.create_all(db_engine)
-	db_session.query(LexiconTerm).delete()
+	db_session.query(LexiconTerm).delete(synchronize_session=False)
 
 
 	# step 3
@@ -69,136 +68,175 @@ def lexicon(input_tab="set_corpora",
 	# step 4
 	# Setting up processing environment.
 	logging.debug("setup processing environment")
-	pool = Pool(workers)
+	pool = Pool(workers, initializer=init_worker)
 	text_buff = []
-	term_lists_handled = 0
+	docs_handled = 0
+	star_time = datetime.datetime.now()
 	terms_dict = dict()
-	if verbose:
-		progress_bar_sz = 100
-		loop_step_size = corpora_sz / progress_bar_sz
-		loop_steps = 0
-
 
 	# step 5
 	# Retrieve documents from corpora and process them.
-	logging.debug("start retrieve data")
-	for doc in db_session.query(TextDoc).order_by("id").yield_per(512):
-		texts = [getattr(doc, text_field) for text_field in text_fields]
-		for text in texts:
-			text_buff.append(text)
+	logging.debug("start processing data")
+	corpora_sz = 1024
+	for doc in db_session.query(TextDoc).order_by("id").yield_per(buff_size * workers)[0:1024]:
+		docs_handled += 1
+		text_set = [getattr(doc, text_field) for text_field in text_fields]
+		text_buff.append(text_set)
 		if len(text_buff) > buff_size:
-			term_lists = pool.map(tokenize, text_buff)
-			if pos_tagging:
-				term_lists = pool.map(pos_tag, term_lists)
-			for term_list in term_lists:
-				term_lists_handled += 1
-				doc_occurrences = set()
-				for elem in term_list:
-					if pos_tagging:
-						term, tag = elem
+			term_sets = pool.map(count_terms, text_buff)
+			for term_set in term_sets:
+				for k in term_set.keys():
+					token, tag, nertag, freq = term_set[k]
+					term = terms_dict.get(k)
+					if term:
+						_, _, _, old_freq, old_dferq = term
+						term_set[k] = (token, tag, nertag, old_freq + freq, old_dferq + 1)
 					else:
-						term = elem
-						tag = None
-					term_key = term_class.make_key(term, tag)
-					if term_key not in terms_dict:
-						lex_term = LexiconTerm(term, tag)
-						terms_dict[term_key] = lex_term
-					else:
-						lex_term = terms_dict[term_key]
-					lex_term.tfreq += 1
-					if term_key not in doc_occurrences:
-						doc_occurrences.add(term_key)
-						lex_term.dfreq += 1
+						term = (token, tag, nertag, freq, 1)
+						terms_dict[k] = term
 			text_buff = []
-		if verbose:
-			loop_steps += 1
-			if loop_steps % loop_step_size == 0:
-				sys.stdout.write("#")
-				sys.stdout.flush()
+			gc.collect()
+			elapsed = (datetime.datetime.now() - star_time).seconds
+			print "\t :: {0:2.2f}%\t {1} / {2}\t worktime {3} sec\t ave speed {4:0.2f} d / sec".format(
+				float(docs_handled * 100) / float(corpora_sz),
+				corpora_sz,
+				docs_handled,
+				elapsed,
+				float(docs_handled) / float(elapsed)
+			)
 
-	if verbose:
-		sys.stdout.write("\n")
-		sys.stdout.flush()
 
-
-	if len(text_buff) > 0:
-		term_lists = pool.map(tokenize, text_buff)
-		if pos_tagging:
-			term_lists = pool.map(pos_tag, term_lists)
-		for term_list in term_lists:
-			term_lists_handled += 1
-			doc_occurrences = set()
-			for elem in term_list:
-				if pos_tagging:
-					term, tag = elem
+	if len(text_buff) > buff_size:
+		term_sets = pool.map(count_terms, text_buff)
+		for term_set in term_sets:
+			for k in term_set.keys():
+				token, tag, nertag, freq = term_set[k]
+				term = terms_dict.get(k)
+				if term:
+					_, _, _, old_freq, old_dferq = term
+					term_set[k] = (token, tag, nertag, old_freq + freq, old_dferq + 1)
 				else:
-					term = elem
-					tag = None
-				term_key = term_class.make_key(term, tag)
-				if term_key not in terms_dict:
-					lex_term = LexiconTerm(term, tag)
-					terms_dict[term_key] = lex_term
-				else:
-					lex_term = terms_dict[term_key]
-				lex_term.tfreq += 1
-				if term_key not in doc_occurrences:
-					doc_occurrences.add(term_key)
-					lex_term.dfreq += 1
-	# text_buff = []
-	# term_lists = []
+					term = (token, tag, nertag, freq, 1)
+					terms_dict[k] = term
+	text_buff = []
+	pool.close()
+	gc.collect()
+
+	elapsed = (datetime.datetime.now() - star_time).seconds
+	print "\t :: {0:2.2f}%\t {1} / {2}\t worktime {3} sec\t ave speed {4:0.2f} d/sec".format(
+		float(docs_handled * 100) / float(corpora_sz),
+		corpora_sz,
+		docs_handled,
+		elapsed,
+		float(docs_handled) / float(elapsed)
+	)
 
 	# step 4
 	# Calculating relative frequencies and saving terms.
 	logging.debug("recounting terms")
-	i = 1
 	corpora_sz_f = float(corpora_sz)
-	logging.debug("lexicon has {0} terms".format(len(terms_dict)))
-	lex_terms = []
-	for term in terms_dict.keys():
-		lex_term = terms_dict[term]
-		lex_term.rfreq = float(lex_term.dfreq) / corpora_sz_f
-		lex_term.id = i
-		i += 1
-		lex_terms.append(lex_term)
+	terms_count = len(terms_dict)
+	logging.debug("lexicon has {0} terms".format(terms_count))
 	logging.debug("saving terms")
-	if csv_output:
-		csv_file = open(csv_output, "w")
-		cols = "id,term,tag,tfreq,dfreq,rfreq\n"
-		pattern = u"{0},\"{1}\",\"{2}\",{3},{4},{5:0.16f}\n"
-		csv_file.write(cols)
-		for lex_term in lex_terms:
-			csv_file.write(
-				pattern.format(
-					lex_term.id,
-					lex_term.term.replace("\"","''"),
-					lex_term.tag.replace("\"","''"),
-					lex_term.tfreq,
-					lex_term.dfreq,
-					lex_term.rfreq
-				).encode("UTF-8")
+	terms_saved = 0
+	star_time = datetime.datetime.now()
+	time.sleep(1)
+	for term_tuple in terms_dict.itervalues():
+		term, tag, nertag, tfreq, dferq = term_tuple
+		t = TaggedTerm(term, tag, nertag)
+		t.tfreq = tfreq
+		t.dfreq = dferq
+		t.rfreq = float(dferq) / corpora_sz_f
+		db_session.add(t)
+		terms_saved += 1
+		if not terms_saved % recount_buffer:
+			db_session.commit()
+			db_session.flush()
+			elapsed = (datetime.datetime.now() - star_time).seconds
+			print "\t :: {0:2.2f}%\t {1} / {2}\t savetime {3} sec\t ave speed {4:0.2f} t/sec".format(
+				float(terms_saved * 100) / float(terms_count),
+				terms_count,
+				terms_saved,
+				elapsed,
+				float(terms_saved) / float(elapsed)
 			)
-		csv_file.close()
-	else:
-		db_session.add_all(lex_terms)
-		db_session.commit()
-		db_session.flush()
-
-
-def init_worker(pos_tagging):
-	if pos_tagging:
-		nlp.Tagger = make_tagger()
-	nlp.Tokenizer = make_tokenizer()
-
-
-def count_terms(text):
-	tokens = nlp.Tokenizer.tokenize(text)
+	db_session.commit()
+	db_session.flush()
+	elapsed = (datetime.datetime.now() - star_time).seconds
+	print "\t :: {0:2.2f}%\t {1} / {2}\t savetime {3} sec\t ave speed {4:0.2f} t/sec".format(
+		float(terms_saved * 100) / float(terms_count),
+		terms_count,
+		terms_saved,
+		elapsed,
+		float(terms_saved) / float(elapsed)
+	)
+	logging.debug("done!\n")
 
 
 
-def tokenize(text):
-	tokenizer = make_tokenizer()
-	return tokenizer.tokenize(text)
 
 
-def pos_tag(token_list):
-	return assign_tags(token_list)
+#	lex_terms = []
+#	for term in terms_dict.keys():
+#		lex_term = terms_dict[term]
+#		lex_term.rfreq = float(lex_term.dfreq) / corpora_sz_f
+#		lex_term.id = i
+#		i += 1
+#		lex_terms.append(lex_term)
+#	logging.debug("saving terms")
+#	if csv_output:
+#		csv_file = open(csv_output, "w")
+#		cols = "id,term,tag,nertag,tfreq,dfreq,rfreq\n"
+#		pattern = u"{0},\"{1}\",\"{2}\",\"{3}\",{5},{6},{7:0.16f}\n"
+#		csv_file.write(cols)
+#		for lex_term in lex_terms:
+#			csv_file.write(
+#				pattern.format(
+#					lex_term.id,
+#					lex_term.term.replace("\"","''"),
+#					lex_term.tag.replace("\"","''"),
+#					lex_term.nertag.replace("\"","''"),
+#					lex_term.tfreq,
+#					lex_term.dfreq,
+#					lex_term.rfreq
+#				).encode("UTF-8")
+#			)
+#		csv_file.close()
+#	else:
+#		db_session.add_all(lex_terms)
+#		db_session.commit()
+#		db_session.flush()
+
+
+def init_worker():
+	nlp.util = NlpUtil()
+
+def count_terms(text_set):
+	counter = dict()
+	# counter : key -> (<token>, <tag>, <ner_tag>, <freq>)
+	for text in text_set:
+		tokens = nlp.util.tokenize(text)
+		ttokens = nlp.util.pos_tag(tokens)
+		ttoken_tree = nlp.util.ner_tag(ttokens)
+		for elem in ttoken_tree:
+			if elem.__class__.__name__ == "tuple":
+				# handle non NER chunk
+				token, tag = elem
+				token_key = token+tag
+				nertag = None
+			else:
+				# handle NER chunk, considering tree has height equal to 1
+				nertag = elem.node
+				tokens = elem.leaves()
+				token, tag = tokens[0]
+				for tk, tg in tokens[1:len(tokens)]:
+					token += "+" + tk
+					tag += "+" + tg
+				token_key = "NER" + token + tag
+			if token_key not in counter:
+				counter[token_key] = (token, tag, nertag, 1)
+			else:
+				prev_count = counter[token_key][3]
+				counter[token_key] = (token, tag, nertag, prev_count + 1)
+	gc.collect()
+	return counter
