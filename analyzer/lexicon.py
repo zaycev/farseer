@@ -26,7 +26,7 @@ def lexicon(input_tab="set_corpora",
 			text_fields=DEFAULT_TEXT_FIELDS,
 			csv_output=None,
 			workers=4,
-			buff_size=128,
+			buff_size=4,
 			recount_buffer=16384):
 	"""
 	This function takes documents from input table,
@@ -84,12 +84,12 @@ def lexicon(input_tab="set_corpora",
 		if len(text_buff) > buff_size:
 			term_sets = pool.map(count_terms, text_buff)
 			for term_set in term_sets:
-				for k in term_set.keys():
+				for k in term_set:
 					token, tag, nertag, freq = term_set[k]
 					term = terms_dict.get(k)
 					if term:
 						_, _, _, old_freq, old_dferq = term
-						term_set[k] = (token, tag, nertag, old_freq + freq, old_dferq + 1)
+						terms_dict[k] = (token, tag, nertag, old_freq + freq, old_dferq + 1)
 					else:
 						term = (token, tag, nertag, freq, 1)
 						terms_dict[k] = term
@@ -103,8 +103,6 @@ def lexicon(input_tab="set_corpora",
 				elapsed,
 				float(docs_handled) / float(elapsed)
 			))
-
-
 	if len(text_buff) > buff_size:
 		term_sets = pool.map(count_terms, text_buff)
 		for term_set in term_sets:
@@ -113,14 +111,12 @@ def lexicon(input_tab="set_corpora",
 				term = terms_dict.get(k)
 				if term:
 					_, _, _, old_freq, old_dferq = term
-					term_set[k] = (token, tag, nertag, old_freq + freq, old_dferq + 1)
+					terms_dict[k] = (token, tag, nertag, old_freq + freq, old_dferq + 1)
 				else:
 					term = (token, tag, nertag, freq, 1)
 					terms_dict[k] = term
-	text_buff = []
 	pool.close()
 	gc.collect()
-
 	elapsed = (datetime.datetime.now() - star_time).seconds
 	logging.debug( "\t :: {0:2.2f}%\t {1} / {2}\t worktime {3} sec\t ave speed {4:0.2f} d/sec".format(
 		float(docs_handled * 100) / float(corpora_sz),
@@ -218,20 +214,22 @@ def count_terms(text_set):
 		ttokens = nlp.util.pos_tag(tokens)
 		ttoken_tree = nlp.util.ner_tag(ttokens)
 		for elem in ttoken_tree:
-			if elem.__class__.__name__ == "tuple":
+			if type(elem) is tuple:
 				# handle non NER chunk
-				token, tag = elem
+				token, tag = elem[0].lower(), elem[1].lower()
 				token_key = token+tag
 				nertag = None
 			else:
 				# handle NER chunk, considering tree has height equal to 1
-				nertag = elem.node
+				nertag = elem.node.lower()
 				tokens = elem.leaves()
+				tokens.sort(key=lambda e: e[0])
+				tokens = [(e[0].lower(), e[1].lower(),) for e in tokens]
 				token, tag = tokens[0]
 				for tk, tg in tokens[1:len(tokens)]:
 					token += "+" + tk
 					tag += "+" + tg
-				token_key = "NER" + token + tag
+				token_key = "ner" + token + tag
 			if token_key not in counter:
 				counter[token_key] = (token, tag, nertag, 1)
 			else:
