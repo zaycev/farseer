@@ -8,7 +8,7 @@
 from sqlalchemy import Column, func
 from sqlalchemy.types import Integer, String
 from options import DATABASE_CONFIG
-from analyzer.term import DbBase, TaggedTerm
+from analyzer.model import DbBase, TaggedTerm
 from analyzer.nlp import NlpUtil
 from analyzer.acessdb import make_environment
 from multiprocessing import Pool
@@ -24,16 +24,14 @@ DEFAULT_TEXT_FIELDS = ("title", "short_text", "full_text",)
 def lexicon(input_tab="set_corpora",
 			output_tab=None,
 			text_fields=DEFAULT_TEXT_FIELDS,
-			csv_output=None,
-			workers=4,
-			buff_size=4,
+			workers=2,
+			buff_size=64,
 			recount_buffer=16384):
 	"""
 	This function takes documents from input table,
 	extracts terms from specified in <text_fields>
 	fields and saves terms with calculated frequencies
-	in output table. If <csv_output> is defined terms will
-	be saved to the csv file instead of output table.
+	in output table.
 	"""
 
 	# step 1
@@ -72,7 +70,7 @@ def lexicon(input_tab="set_corpora",
 	text_buff = []
 	docs_handled = 0
 	star_time = datetime.datetime.now()
-	terms_dict = dict()
+	term_dict = dict()
 
 	# step 5
 	# Retrieve documents from corpora and process them.
@@ -81,18 +79,9 @@ def lexicon(input_tab="set_corpora",
 		docs_handled += 1
 		text_set = [getattr(doc, text_field) for text_field in text_fields]
 		text_buff.append(text_set)
-		if len(text_buff) > buff_size:
+		if len(text_buff) >= buff_size or (corpora_sz - docs_handled) <= buff_size:
 			term_sets = pool.map(count_terms, text_buff)
-			for term_set in term_sets:
-				for k in term_set:
-					token, tag, nertag, freq = term_set[k]
-					term = terms_dict.get(k)
-					if term:
-						_, _, _, old_freq, old_dferq = term
-						terms_dict[k] = (token, tag, nertag, old_freq + freq, old_dferq + 1)
-					else:
-						term = (token, tag, nertag, freq, 1)
-						terms_dict[k] = term
+			reduce_terms(term_dict, term_sets)
 			text_buff = []
 			gc.collect()
 			elapsed = (datetime.datetime.now() - star_time).seconds
@@ -103,40 +92,21 @@ def lexicon(input_tab="set_corpora",
 				elapsed,
 				float(docs_handled) / float(elapsed)
 			))
-	if len(text_buff) > buff_size:
-		term_sets = pool.map(count_terms, text_buff)
-		for term_set in term_sets:
-			for k in term_set.keys():
-				token, tag, nertag, freq = term_set[k]
-				term = terms_dict.get(k)
-				if term:
-					_, _, _, old_freq, old_dferq = term
-					terms_dict[k] = (token, tag, nertag, old_freq + freq, old_dferq + 1)
-				else:
-					term = (token, tag, nertag, freq, 1)
-					terms_dict[k] = term
 	pool.close()
 	gc.collect()
-	elapsed = (datetime.datetime.now() - star_time).seconds
-	logging.debug( "\t :: {0:2.2f}%\t {1} / {2}\t worktime {3} sec\t ave speed {4:0.2f} d/sec".format(
-		float(docs_handled * 100) / float(corpora_sz),
-		corpora_sz,
-		docs_handled,
-		elapsed,
-		float(docs_handled) / float(elapsed)
-	))
+
 
 	# step 4
 	# Calculating relative frequencies and saving terms.
 	logging.debug("recounting terms")
 	corpora_sz_f = float(corpora_sz)
-	terms_count = len(terms_dict)
+	terms_count = len(term_dict)
 	logging.debug("lexicon has {0} terms".format(terms_count))
 	logging.debug("saving terms")
 	terms_saved = 0
 	star_time = datetime.datetime.now()
 	time.sleep(1)
-	for term_tuple in terms_dict.itervalues():
+	for term_tuple in term_dict.itervalues():
 		term, tag, nertag, tfreq, dferq = term_tuple
 		t = TaggedTerm(term, tag, nertag)
 		t.tfreq = tfreq
@@ -144,7 +114,7 @@ def lexicon(input_tab="set_corpora",
 		t.rfreq = float(dferq) / corpora_sz_f
 		db_session.add(t)
 		terms_saved += 1
-		if not terms_saved % recount_buffer:
+		if (terms_saved % recount_buffer == 0) or (terms_count - terms_saved) <= recount_buffer:
 			db_session.commit()
 			db_session.flush()
 			elapsed = (datetime.datetime.now() - star_time).seconds
@@ -155,56 +125,15 @@ def lexicon(input_tab="set_corpora",
 				elapsed,
 				float(terms_saved) / float(elapsed)
 			))
-	db_session.commit()
-	db_session.flush()
-	elapsed = (datetime.datetime.now() - star_time).seconds
-	logging.debug( "\t :: {0:2.2f}%\t {1} / {2}\t savetime {3} sec\t ave speed {4:0.2f} t/sec".format(
-		float(terms_saved * 100) / float(terms_count),
-		terms_count,
-		terms_saved,
-		elapsed,
-		float(terms_saved) / float(elapsed)
-	))
 	logging.debug("done!\n")
 
+	db_engine.close()
 
-
-
-
-#	lex_terms = []
-#	for term in terms_dict.keys():
-#		lex_term = terms_dict[term]
-#		lex_term.rfreq = float(lex_term.dfreq) / corpora_sz_f
-#		lex_term.id = i
-#		i += 1
-#		lex_terms.append(lex_term)
-#	logging.debug("saving terms")
-#	if csv_output:
-#		csv_file = open(csv_output, "w")
-#		cols = "id,term,tag,nertag,tfreq,dfreq,rfreq\n"
-#		pattern = u"{0},\"{1}\",\"{2}\",\"{3}\",{5},{6},{7:0.16f}\n"
-#		csv_file.write(cols)
-#		for lex_term in lex_terms:
-#			csv_file.write(
-#				pattern.format(
-#					lex_term.id,
-#					lex_term.term.replace("\"","''"),
-#					lex_term.tag.replace("\"","''"),
-#					lex_term.nertag.replace("\"","''"),
-#					lex_term.tfreq,
-#					lex_term.dfreq,
-#					lex_term.rfreq
-#				).encode("UTF-8")
-#			)
-#		csv_file.close()
-#	else:
-#		db_session.add_all(lex_terms)
-#		db_session.commit()
-#		db_session.flush()
 
 
 def init_worker():
 	nlp.util = NlpUtil()
+
 
 def count_terms(text_set):
 	counter = dict()
@@ -237,3 +166,16 @@ def count_terms(text_set):
 				counter[token_key] = (token, tag, nertag, prev_count + 1)
 	gc.collect()
 	return counter
+
+
+def reduce_terms(term_dict, term_sets):
+	for term_set in term_sets:
+		for k in term_set:
+			token, tag, nertag, freq = term_set[k]
+			term = term_dict.get(k)
+			if term:
+				_, _, _, old_freq, old_dferq = term
+				term_dict[k] = (token, tag, nertag, old_freq + freq, old_dferq + 1)
+			else:
+				term = (token, tag, nertag, freq, 1)
+				term_dict[k] = term
