@@ -14,6 +14,6 @@ def make_environment(db_config):
 		host=db_config["host"],
 		port=db_config["port"],
 		database=db_config["database"],)
-	db_engine = create_engine(db_url)
+	db_engine = create_engine(db_url, pool_size=768, max_overflow=192)
 	db_session = sessionmaker(bind=db_engine, autoflush=False)()
 	return db_engine, db_session
