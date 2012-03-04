@@ -62,6 +62,7 @@ def index(input_tab="set_corpora",
 	text_buff = []
 	docs_handled = 0
 	star_time = datetime.datetime.now()
+	indexed_docs = []
 
 	# step 5
 	# Retrieve documents from corpora and process them.
@@ -73,10 +74,7 @@ def index(input_tab="set_corpora",
 			for text_field in text_fields])
 		text_buff.append(text_set)
 		if (len(text_buff) >= buff_size) or (corpora_sz == docs_handled):
-			indexed_docs = pool.map(map_text_to_docterms, text_buff)
-			save_indexed_docs(indexed_docs, db_session)
-			db_session.commit()
-			db_session.flush()
+			indexed_docs.extend(pool.map(map_text_to_docterms, text_buff))
 			text_buff = []
 			gc.collect()
 			elapsed = (datetime.datetime.now() - star_time).seconds
@@ -87,7 +85,11 @@ def index(input_tab="set_corpora",
 				elapsed,
 				float(docs_handled) / float(elapsed)
 			))
-
+	
+	logging.debug("saving indexed docs")
+	save_indexed_docs(indexed_docs, db_session)
+	db_session.commit()
+	db_session.flush()
 
 	logging.debug("done!\n")
 
