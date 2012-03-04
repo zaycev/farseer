@@ -157,6 +157,8 @@ def save_indexed_docs(indexed_docs, db_session):
 			for tid in term_counter.iterkeys():
 				dt = DocTerm(tid, doc_stat[0], field_id, term_counter[tid])
 				db_session.add(dt)
+		db_session.commit()
+		db_session.flush()
 
 
 def make_tagged_term_key(tagged_term):
