@@ -58,7 +58,7 @@ class DocTerm(DbBase):
 	__tablename__ = "set_docterm"				#
 	tid = Column(Integer, primary_key=True)		#
 	did = Column(Integer, primary_key=True)		#
-	fid = Column(Integer)						#
+	fid = Column(Integer, primary_key=True)						#
 	count = Column(Integer)						#
 
 	def __init__(self, tid, did, fid, count):
