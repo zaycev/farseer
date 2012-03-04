@@ -22,10 +22,9 @@ DEFAULT_TEXT_FIELDS = ("title", "short_text", "full_text",)
 
 
 def lexicon(input_tab="set_corpora",
-			output_tab=None,
 			text_fields=DEFAULT_TEXT_FIELDS,
-			workers=2,
-			buff_size=64,
+			workers=4,
+			buff_size=256,
 			recount_buffer=16384):
 	"""
 	This function takes documents from input table,
@@ -39,9 +38,6 @@ def lexicon(input_tab="set_corpora",
 	# connection, classes for input and output table
 	# mapping.
 	logging.debug("setup ORM environment")
-	term_class = TaggedTerm
-	class LexiconTerm(term_class, DbBase):
-		__tablename__ = output_tab if output_tab else term_class.__tablename__
 	db_engine, db_session = make_environment(DATABASE_CONFIG["repository"])
 	doc_class_fields = {field_name: Column(String) for field_name in text_fields}
 	doc_class_fields["id"] = Column(Integer, primary_key=True)
@@ -53,7 +49,7 @@ def lexicon(input_tab="set_corpora",
 	# Creating or truncating the target (output) table.
 	logging.debug("create or truncate target ({0}) table".format(output_tab))
 	DbBase.metadata.create_all(db_engine)
-	db_session.query(LexiconTerm).delete(synchronize_session=False)
+	db_session.query(TaggedTerm).delete(synchronize_session=False)
 
 
 	# step 3
@@ -79,9 +75,9 @@ def lexicon(input_tab="set_corpora",
 		docs_handled += 1
 		text_set = [getattr(doc, text_field) for text_field in text_fields]
 		text_buff.append(text_set)
-		if len(text_buff) >= buff_size or (corpora_sz - docs_handled) <= buff_size:
-			term_sets = pool.map(count_terms, text_buff)
-			reduce_terms(term_dict, term_sets)
+		if len(text_buff) >= buff_size or corpora_sz == docs_handled:
+			term_sets = pool.map(map_text_to_terms, text_buff)
+			reduce_termsets(term_dict, term_sets)
 			text_buff = []
 			gc.collect()
 			elapsed = (datetime.datetime.now() - star_time).seconds
@@ -114,7 +110,7 @@ def lexicon(input_tab="set_corpora",
 		t.rfreq = float(dferq) / corpora_sz_f
 		db_session.add(t)
 		terms_saved += 1
-		if (terms_saved % recount_buffer == 0) or (terms_count - terms_saved) <= recount_buffer:
+		if (terms_saved % recount_buffer == 0) or terms_saved == terms_count:
 			db_session.commit()
 			db_session.flush()
 			elapsed = (datetime.datetime.now() - star_time).seconds
@@ -135,7 +131,7 @@ def init_worker():
 	nlp.util = NlpUtil()
 
 
-def count_terms(text_set):
+def map_text_to_terms(text_set):
 	counter = dict()
 	# counter : key -> (<token>, <tag>, <ner_tag>, <freq>)
 	for text in text_set:
@@ -168,7 +164,7 @@ def count_terms(text_set):
 	return counter
 
 
-def reduce_terms(term_dict, term_sets):
+def reduce_termsets(term_dict, term_sets):
 	for term_set in term_sets:
 		for k in term_set:
 			token, tag, nertag, freq = term_set[k]

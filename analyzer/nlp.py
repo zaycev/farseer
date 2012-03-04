@@ -8,6 +8,7 @@ from nltk.tokenize import PunktSentenceTokenizer
 import re
 
 util = None
+term_cache = None
 
 class NlpUtil(object):
 
