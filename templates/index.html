@@ -6,19 +6,15 @@
 		<meta name="description" content="">
 		<meta name="author" content="">
 
-		<!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
-		<!--[if lt IE 9]>
-		<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-		<![endif]-->
-
 		<!-- Le JavaScript -->
 		<script src="/www/js/jquery-1.7.1.min.js"></script>
 
 		<!-- Le styles -->
 		<link href="/www/css/bootstrap.css" rel="stylesheet">
+		<link href="/www/css/bootstrap-responsive.css" rel="stylesheet">
 		<style type="text/css">
 			body {
-				padding-top: 60px;
+				padding-top: 0px;
 				padding-bottom: 40px;
 			}
 			.navbar-fixed-top .brand {
@@ -36,127 +32,169 @@
 			.navbar-fixed-top .brand:hover {
 				text-decoration: none;
 			}
-
-			/*.light-start {*/
-				/*-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);*/
-				/*-moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);*/
-				/*box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);*/
-				/*-webkit-transition: border linear 0.2s, box-shadow linear 0.2s;*/
-				/*-moz-transition: border linear 0.2s, box-shadow linear 0.2s;*/
-				/*-ms-transition: border linear 0.2s, box-shadow linear 0.2s;*/
-				/*-o-transition: border linear 0.2s, box-shadow linear 0.2s;*/
-				/*transition: border linear 0.2s, box-shadow linear 0.2s;*/
-			/*}*/
-
-			/*.light-start:hover {*/
-				/*border-color: rgba(70, 165, 70, 0.8);*/
-				/*-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgba(70, 165, 70, 0.8);*/
-				/*-moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgba(70, 165, 70, 0.8);*/
-				/*box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgba(70, 165, 70, 0.8);*/
-				/*outline: 0;*/
-				/*outline: thin dotted \9;*/
-			/*}*/
-
-
 		</style>
-		<link href="/www/css/bootstrap-responsive.css" rel="stylesheet">
 
 	</head>
 
 	<body>
 
-		<div class="navbar navbar-fixed-top">
-			<div class="navbar-inner">
-				<div class="container">
-					<div class="nav-collapse">
-						<ul class="nav">
-							<li>
-								<a href="/">App</a>
-							</li>
-							<li>
-								<a href="/">Overview</a>
-							</li>
-							<li>
-								<a href="http://91.193.218.140:8082/">Wiki</a>
-							</li>
-						</ul>
-					</div>
-					<a class="brand" href="/">Farseer Project</a>
-				</div>
-			</div>
+{#		<div class="navbar navbar-fixed-top">#}
+{#			<div class="navbar-inner">#}
+{#				<div class="container">#}
+{#					<div class="nav-collapse">#}
+{#						<ul class="nav">#}
+{#							<li>#}
+{#								<a href="/">Detailed Popularity Charts</a>#}
+{#							</li>#}
+{#							<li>#}
+{#								<a href="/">Overview</a>#}
+{#							</li>#}
+{#							<li>#}
+{#								<a href="http://91.193.218.140:8082/">Wiki</a>#}
+{#							</li>#}
+{#						</ul>#}
+{#					</div>#}
+{#					<a class="brand" href="/">Farseer Project</a>#}
+{#				</div>#}
+{#			</div>#}
+{#		</div>#}
+
+<div class="container-fluid" style="margin:0 64px 0 64px;">
+
+	<div class="row-fluid">
+		<div style="width:320px;margin: 10px 0  16px -64'px;">
+			<img class="light-start" src="/www/logo.png"/>
 		</div>
+	</div>
 
-		<div class="container" style="width:680px;margin:0 auto 0 auto;">
+{#			<div class="row" style="width:600px;margin: 0 auto 64px auto;">#}
+{##}
+{#				<form id="search-form" action="/result" class="form-horizontal">#}
+{#					<fieldset>#}
+{#						<div class="control-group">#}
+{#							<!--<label class="control-label">Text query</label>-->#}
+{#							<div class="controls">#}
+{#								<input name="q" class="input" type="text"/>#}
+{#								<!--type="submit"-->#}
+{#								<button id="submit-button"  class="btn">#}
+{#									<i class="icon-th"></i>#}
+{#								</button>#}
+{#							</div>#}
+{#						</div>#}
+{#					</fieldset>#}
+{#				</form>#}
+{#			</div>#}
 
 
-			<div class="row">
-				<div style="width:512px;margin: 64px auto 32px auto;">
-					<img class="light-start" src="/www/img/farseer-logo.png"/>
-				</div>
-			</div>
+			<div class="row-fluid">
+
+			<h2>Explore data</h2></i>
+
 
 			<br/>
+			<h3>1. Lexicon terms <a style="font-size:small;" href="#">see all »</a></h3>
+			<br/>
 
-			<div class="row">
+				<table class="table table-condensed table-striped table-bordered">
+					<thead>
+						<tr>
+							<th style="width:32px;">#</th>
+						{%  for property in termsets.properties %}
+							<th>
+								{% if property.name == "people" %}
+									<img style="width:16px;height:16px;margin:0 0 -4px 0;padding:0;display:inline-block;" src="www/icons/brain_trainer.png"/>
+								{% endif %}
+								{% if property.name == "organizations" %}
+									<img style="width:16px;height:16px;margin:0 0 -4px 0;padding:0;display:inline-block;" src="www/icons/reseller_programm.png"/>
+								{% endif %}
+								{% if property.name == "locations" %}
+									<img style="width:16px;height:16px;margin:0 0 -4px 0;padding:0;display:inline-block;" src="www/icons/location_pin.png"/>
+								{% endif %}
+								{% if property.name == "facilities" %}
+									<img style="width:16px;height:16px;margin:0 0 -4px 0;padding:0;display:inline-block;" src="www/icons/tree.png"/>
+								{% endif %}
+								{% if property.name == "random" %}
+									<img style="width:16px;height:16px;margin:0 0 -4px 0;padding:0;display:inline-block;" src="www/icons/dice.png"/>
+								{% endif %}
+								{{ property.name|capfirst }}
+								{% if not forloop.last %}
+									({{ property.count }})
+								{% endif %}
+							</th>
+						{% endfor %}
+						</tr>
+					</thead>
+					<tbody>
+						{% for row in  termsets.data %}
+							<tr>
+								<td>{{ forloop.counter }}</td>
+								{% for cell in row %}
+									<td>
+										<span style="display:inline-block;width:24px;" class="label label-info">{{ cell.dfreq }}</span>
+											{% if forloop.last %}
+											{% if cell.nertag == "person" %}
+												<img style="width:16px;height:16px;margin:0 0 -4px 0;padding:0;display:inline-block;" src="www/icons/brain_trainer.png"/>
+											{% endif %}
+											{% if cell.nertag == "organization" %}
+												<img style="width:16px;height:16px;margin:0 0 -4px 0;padding:0;display:inline-block;" src="www/icons/reseller_programm.png"/>
+											{% endif %}
+											{% if cell.nertag == "location" %}
+												<img style="width:16px;height:16px;margin:0 0 -4px 0;padding:0;display:inline-block;" src="www/icons/location_pin.png"/>
+											{% endif %}
+											{% if cell.nertag == "facility" %}
+												<img style="width:16px;height:16px;margin:0 0 -4px 0;padding:0;display:inline-block;" src="www/icons/tree.png"/>
+											{% endif %}
+										{% endif %}
+										<a href="#">{{ cell.pretty_term }}</a>
+									</td>
+								{% endfor %}
+							</tr>
+						{% endfor %}
+					</tbody>
+				</table>
 
-				<form action="/analyze" class="form-horizontal">
-					<fieldset>
-						<div class="control-group">
-							<!--<label class="control-label">Text query</label>-->
-							<div class="controls">
-								<input name="text_query" class="input" style="width:348px;" type="text"/>
-								<!--type="submit"-->
-								<button id="submit-button"  class="btn">
-									<i class="icon-th"></i>
-								</button>
-							</div>
-						</div>
-						<!--<div class="control-group">-->
-							<!--<label class="control-label">Time period</label>-->
-							<!--<div class="controls">-->
-								<!--<select name="start_year" style="width:64px;">-->
-									<!--<option>2011</option>-->
-									<!--{% for y in years %}-->
-									<!--<option>{{ y }}</option>-->
-									<!--{% endfor %}-->
-								<!--</select>-->
-								<!--<select name="start_month" style="width:64px;">-->
-									<!--<option>10</option>-->
-									<!--{% for m in months %}-->
-									<!--<option>{% if m < 10 %}0{% endif %}{{ m }}</option>-->
-									<!--{% endfor %}-->
-								<!--</select>-->
-								<!----->
-								<!--<select name="end_year" style="width:64px;">-->
-									<!--<option>2012</option>-->
-									<!--{% for y in years %}-->
-									<!--<option>{{ y }}</option>-->
-									<!--{% endfor %}-->
-								<!--</select>-->
-								<!--<select name="end_month" style="width:64px;">-->
-									<!--<option>02</option>-->
-									<!--{% for m in months %}-->
-									<!--<option>{% if m < 10 %}0{% endif %}{{ m }}</option>-->
-									<!--{% endfor %}-->
-								<!--</select>-->
-								<!--display by-->
-								<!--<select name="group_size" style="width:100px;">-->
-									<!--<option value="1">1 month</option>-->
-									<!--<option value="2">2 months</option>-->
-									<!--<option value="3">3 months</option>-->
-									<!--<option value="4">4 months</option>-->
-									<!--<option value="5">5 months</option>-->
-									<!--<option value="6">6 months</option>-->
-									<!--<option value="12">12 months</option>-->
-								<!--</select>-->
-							<!--</div>-->
-						<!--</div>-->
-					</fieldset>
-				</form>
 			</div>
 
 
-			<hr style="margin: 100px 0 48px 0;"/>
+			<br/>
+			<h3>2. Popular stories</h3>
+			<br/>
+
+			<table class="table table-condensed table-bordered">
+				<thead>
+					<tr>
+						<th>#</th>
+						<th>Story</th>
+						<th>Score</th>
+						<th>Hits</th>
+						<th>Likes</th>
+						<th>Twitts</th>
+						<th>Comments</th>
+						<th>StumbleUpon</th>
+						<th>LinkedIn</th>
+						<th>Published</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for story in stories %}
+						<tr class="alert">
+							<td>{{ forloop.counter }}</td>
+							<td><a href="{{ story.uri }}">{{ story.title }}</a></td>
+							<td>{{ story.lscore }}</td>
+							<td>{{ story.views }}</td>
+							<td>{{ story.fb_shr }}</td>
+							<td>{{ story.tw }}</td>
+							<td>{{ story.com }}</td>
+							<td>{{ story.su }}</td>
+							<td>{{ story.li }}</td>
+							<td>{{ story.time|date:"Y.m.d" }}</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+
+
+			<hr style="margin: 100px 48px 0;"/>
 
 			<footer>
 				<p style="margin:32px 0 128px 0;">
@@ -170,6 +208,7 @@
 		<script>
 			$("#submit-button").bind("click", function(){
 				$(this).attr("disabled", "disabled");
+				$("#search-form").submit()
 			});
 		</script>
 

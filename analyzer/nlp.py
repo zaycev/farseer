@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from nltk import TreebankWordTokenizer
 from nltk.data import load
 from nltk.tag import _POS_TAGGER
 from nltk.chunk import _MULTICLASS_NE_CHUNKER
 from nltk.tokenize import PunktSentenceTokenizer
+from nltk.tokenize import WordPunctTokenizer
 import re
 
 util = None
@@ -13,7 +13,7 @@ term_cache = None
 class NlpUtil(object):
 
 	def __init__(self):
-		self.wrd_tokenizer = TreebankWordTokenizer()
+		self.wrd_tokenizer = WordPunctTokenizer()
 		self.snt_tokenizer = PunktSentenceTokenizer()
 		self.snt_corrector = SentenceCorrector()
 		self.pos_tagger = load(_POS_TAGGER)

@@ -4,7 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import sessionmaker
 
-
+db_engine = None
+db_session = None
 
 def make_environment(db_config):
 	db_url = URL(

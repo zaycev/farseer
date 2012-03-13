@@ -1,67 +1,40 @@
 # -*- coding: utf-8 -*-
 from django.shortcuts import render_to_response
-import  datetime
+from analyzer.model import db_session, TaggedTerm, Document
+from sqlalchemy import func
+
 import search
 
 def index(request):
-	years = xrange(2008,2013)
-	months = xrange(1,13)
-	today = datetime.datetime.now()
+
+	people = db_session.query(TaggedTerm).filter(TaggedTerm.nertag == "person").order_by("-dfreq")
+	locations = db_session.query(TaggedTerm).filter(TaggedTerm.nertag == "location").order_by("-dfreq")
+	organizations = db_session.query(TaggedTerm).filter(TaggedTerm.nertag == "organization").order_by("-dfreq")
+	facilities = db_session.query(TaggedTerm).filter(TaggedTerm.nertag == "facility").order_by("-dfreq")
+	randoms = db_session.query(TaggedTerm).order_by("RANDOM()")
+
+	stories = db_session.query(Document).order_by("-score")[0:32]
+
+
 	return render_to_response("index.html", {
-		"years": years,
-		"months": months,
-		"today": today,
+		"termsets": {
+			"properties": [
+					{"name":"people", "count":db_session.query(func.count("*")).select_from(TaggedTerm).filter(TaggedTerm.nertag=="person").scalar()},
+					{"name":"locations", "count":db_session.query(func.count("*")).select_from(TaggedTerm).filter(TaggedTerm.nertag=="location").scalar()},
+					{"name":"organizations", "count":db_session.query(func.count("*")).select_from(TaggedTerm).filter(TaggedTerm.nertag=="organization").scalar()},
+					{"name":"facilities", "count":db_session.query(func.count("*")).select_from(TaggedTerm).filter(TaggedTerm.nertag=="facility").scalar()},
+					{"name":"random"},
+			],
+			"data": zip( people[0:32], locations[0:32], organizations[0:32], facilities[0:32], randoms[0:32]),
+		},
+		"stories": stories,
 	})
 
 
-def analyze(request):
-
-	query = request.GET["text_query"]
-	start_year = int(request.GET["start_year"])
-	start_month = int(request.GET["start_month"])
-	end_year = int(request.GET["end_year"])
-	end_month = int(request.GET["end_month"])
-	group_size = int(request.GET["group_size"])
-
-#	positions = dict()
-
-	timerange = search.time_range(
-		(start_year, start_month),
-		(end_year, end_month),
-		group_size,
-	)
-
-	cur_point = timerange[0]
-	results = []
-	rank_cache = []
-
-	for next_point in timerange[1:len(timerange)]:
-
-
-		result = search.search(query,cur_point,next_point,16,rank_cache)
-		cur_point = next_point
-
-#		if result["subset"]:
-#			new_rank = []
-#			for row in result["data"]:
-#				if row["term"] in positions:
-#					row["delta"] = positions[row["term"]] - row["idx"]
-#				else:
-#					row["delta"] = 0
-#				positions[row["term"]] = row["idx"]
-#				new_rank.append(row)
-#			results.append({
-#				"subset":-1,#result["subset"],
-#				"data":new_rank,
-#				"start":cur_date,
-#				"end":next_date,
-#				"result":{
-#				}
-#			})
-
-		results.append(result)
-
-	return render_to_response("analyze.html", {
-		"query": query,
-		"results": results,
+def result(request):
+	text_query = request.GET["q"]
+	result = search.analyze(text_query)
+	return render_to_response("result.html", {
+		"result": result,
+		"query": text_query,
 	})

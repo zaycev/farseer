@@ -191,6 +191,7 @@ class WkTopicFetcher(WkTextDataFetcher):
 	def_enc = "ISO-8859-1"
 
 	def target(self, task):
+		print "uri: ", task.job.uri
 		html = self.fetch_text(task.job.uri)
 		task.job.html = html
 		return [task]
@@ -202,9 +203,8 @@ class WkTopicParser(WkParser):
 		html = clean_html(task.job.html)
 		river_doc = document_fromstring(html)
 		content_el = river_doc.find_class("KonaBody post-content")[0]
-		task.job.html = html
+#		task.job.html = html
 		task.job.full_text = self.text_content(content_el)
-		task.job.html = "z"
 		return [task]
 
 class WkRawTopicReader(SqlReader):

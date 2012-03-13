@@ -1,10 +1,40 @@
 # -*- coding: utf-8 -*-
 
 from sqlalchemy import Column
-from sqlalchemy.types import Integer, Float, String
+from sqlalchemy.types import Integer, Float, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
+from analyzer.acessdb import make_environment
+from options import DATABASE_CONFIG
+import math
 
 DbBase = declarative_base()
+
+class Document(DbBase):
+	__tablename__ = "set_corpora"
+	id = Column(Integer, primary_key=True)
+	uri = Column(String)
+	title = Column(String)
+	short_text = Column(String)
+	full_text = Column(String)
+	views = Column(Integer)
+	com  = Column(Integer)
+	fb_com = Column(Integer)
+	fb_shr = Column(Integer)
+	tw = Column(Integer)
+	su = Column(Integer)
+	dg = Column(Integer)
+	li = Column(Integer)
+	score = Column(Float)
+	time = Column(DateTime)
+
+	@property
+	def lscore(self):
+#		print
+		return "{0:2.3f}".format(math.log(self.score))
+
+
+
+
 
 class TaggedTerm(DbBase):
 	__tablename__ = "set_term"					# default terms table
@@ -30,6 +60,10 @@ class TaggedTerm(DbBase):
 	@staticmethod
 	def make_key(term, key, *args):
 		return term + key
+
+	@property
+	def pretty_term(self):
+		return self.term.replace("+", " ")
 
 	def __repr__(self):
 		return "<TaggedTerm('{0}', '{1}')>".format(self.term, self.tag)
@@ -69,3 +103,6 @@ class DocTerm(DbBase):
 
 	def __repr__(self):
 		return "<DocTerm('{0}', '{1}')>".format(self.did, self.tid)
+
+db_engine, db_session = make_environment(DATABASE_CONFIG["repository"])
+DbBase.metadata.create_all(db_engine)
