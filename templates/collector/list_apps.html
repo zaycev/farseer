@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block page-title %}Collector | Application Index{% endblock %}
+{% block page-content %}
+
+{#	<div class="row-fluid">#}
+{#		<div class="page-header">#}
+{#			<h1>Collector / Application Index</h1>#}
+{#		</div>#}
+{#		<br/>#}
+{#	</div>#}
+
+	{% include "collector/navbar.html" %}
+
+
+
+			<div class="row-fluid">
+			{%  for service in services %}
+				<div class="span6">
+				<h3>{{ service.common.name }} <a style="font-size:12px;"
+										  href="/apps/collector/river_fetcher">[Manage]</a>
+				</h3>
+				<br/>
+				<table class="table table-bordered table-striped table-condensed">
+					<tr>
+						<td style="width:128px;">Address</td>
+						<td>{{ service.common.address }}</td>
+					</tr>
+					<tr>
+						<td style="width:128px;">Status</td>
+						<td>{{ service.common.status }}</td>
+					</tr>
+					<tr>
+						<td>Workers</td>
+						<td>{{ service.common.pool_size }}</td>
+					</tr>
+				</table>
+				<div class="progress progress-info progress-striped active">
+					<div class="bar"
+						 style="width: {{ service.common.job_done }}%;"></div>
+				</div>
+				</div>
+				{% if forloop.counter|divisibleby:2 %}
+					</div>
+					<hr/><br/>
+					<div class="row-fluid">
+				{% endif %}
+			{% endfor %}
+			</div>
+
+{% endblock %}
+
+{% block js %}
+	<script type="text/javascript" src="/www/js/bootstrap-dropdown.js"></script>
+{% endblock %}
