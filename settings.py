@@ -1,4 +1,4 @@
-# Django settings for mstore project.
+
 import os
 from options import DATABASE_CONFIG as db
 
@@ -19,7 +19,10 @@ DATABASES = {
         'PASSWORD': db["web"]["password"],
         'HOST': db["web"]["host"],
         'PORT': db["web"]["port"],
-    }
+#		'OPTIONS': {
+#			'autocommit': True,
+#			}
+	}
 }
 
 # Local time zone for this installation. Choices can be found here:
@@ -92,7 +95,7 @@ INSTALLED_APPS = (
 	'django.contrib.sites',
 	'django.contrib.messages',
 	'django.contrib.staticfiles',
-	'web',
+#	'web',
 	"collector",
 )
 
