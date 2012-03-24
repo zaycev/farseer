@@ -1,0 +1,21 @@
+{% if active.common.error_log %}
+	<div class="row-fluid">
+
+
+		<legend>
+			Error Log:
+		</legend>
+		<div class="span10">
+							<pre class="pre-scrollable prettyprint linenums" style="padding-left:16px;">{% for timestamp, text in active.common.error_log %}
+								{{ timestamp|date:"Y.m.d H:i:s" }}
+								{{ text }}{% endfor %}</pre>
+		</div>
+
+		<script>
+			$(function(){
+				prettyPrint();
+			});
+		</script>
+
+	</div>
+{% endif %}

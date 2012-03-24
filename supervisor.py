@@ -1,119 +1,258 @@
 # -*- coding: utf-8 -*-
-import time
 
+import gc
+import datetime
+import multiprocessing
+
+from agent import Message
 from agent import AbsAgent
 from agent import Agency
-from worker import IWorker
+from worker import Worker
 
 from abc import ABCMeta
 from abc import abstractmethod
+from collections import deque
 from collections import OrderedDict
 
-import multiprocessing
+class WorkerSlot(object):
+
+	def __init__(self, agent_worker):
+		self.agent = agent_worker
+		self.status = Worker.Status.WAIT
+
 
 class ISupervisor(object):
 	__metaclass__ = ABCMeta
+	name = "Default Supervisor"
+
+	class Status:
+		SLEEP = 0
+		BUSY = 1
+		WAIT = 2
+		DONE = 3
+
+		@staticmethod
+		def name(status):
+			if status is ISupervisor.Status.SLEEP:
+				return "SLEEP"
+			elif status is ISupervisor.Status.BUSY:
+				return "BUSY"
+			elif status is ISupervisor.Status.WAIT:
+				return "WAIT"
+			elif status is ISupervisor.Status.DONE:
+				return "DONE"
+			return "UNKNOWN"
 
 	@abstractmethod
-	def add_worker(self):
+	def __set_pool_size__(self, new_size):
 		raise NotImplementedError("You should implement this method")
 
 	@abstractmethod
-	def rem_worker(self):
+	def __add_worker__(self):
 		raise NotImplementedError("You should implement this method")
 
 	@abstractmethod
-	def default_params(self):
+	def __rem_worker__(self):
+		raise NotImplementedError("You should implement this method")
+
+	@abstractmethod
+	def __complete_percentage__(self):
+		raise NotImplementedError("You should implement this method")
+
+	@abstractmethod
+	def __get_state__(self):
+		raise NotImplementedError("You should implement this method")
+
+	@abstractmethod
+	def __get_full_state__(self):
+		raise NotImplementedError("You should implement this method")
+
+	@abstractmethod
+	def __full_default_params__(self):
 		raise NotImplementedError("You should implement this method")
 
 	@abstractmethod
 	def __default_params__(self):
 		raise NotImplementedError("You should implement this method")
 
-	@abstractmethod
-	def get_state(self):
-		raise NotImplementedError("You should implement this method")
-
-	@abstractmethod
-	def __get_state__(self):
-		raise NotImplementedError("You should implement this method")
 
 class AbsSupervisor(AbsAgent, ISupervisor):
+	process = True
 
 	@abstractmethod
-	def __init__(self, aid, worker_cls):
-		self.worker_cls = worker_cls
-		self.workers = None
-		self.input_queue = None
-		self.output_queue = None
-		self.pool_size = 2
+	def __init__(self, address, worker_class):
+		self.worker_class = worker_class
+		self.worker_slots = None
+		self.io_helper = None
 		self.params = None
-		super(AbsSupervisor, self).__init__(aid,
-			unit_type=multiprocessing.Process)
+		self.status = None
+		self.complete_tasks = None
+		self.sent_tasks = None
+		self.error_log = None
+		super(AbsSupervisor, self).__init__(address)
 
-	def initialize(self):
-		super(AbsSupervisor, self).initialize()
-		self.workers = dict()
-		self.input_queue = []
-		self.output_queue = []
+	def __init_agent__(self):
+		super(AbsSupervisor, self).__init_agent__()
+		self.worker_slots = dict()
+		self.error_log = deque(maxlen=64)
+		self.params = self.__full_default_params__()
+		self.status = ISupervisor.Status.SLEEP
 
-	def run(self):
-		raise NotImplementedError("You should implement this method")
+	def __run_session__(self):
+		if self.status is ISupervisor.Status.SLEEP\
+		   or self.status is ISupervisor.Status.DONE:
+			self.status = ISupervisor.Status.BUSY
+			self.io_helper = self.worker_class.make_io_helper(self.params)
+			self.complete_tasks = 0
+			self.__respawn_workers__()
+			self.sent_tasks = dict()
 
-	def add_worker(self):
+	def __assign_next_task__(self, worker_slot):
+		if self.status is ISupervisor.Status.BUSY:
+			next_task = None
+			try:
+				next_task = self.io_helper.read_next_task()
+			except StopIteration: pass
+			if next_task:
+				address = worker_slot.agent.address
+				self.mailbox.send(next_task, address, Message.TASK)
+				worker_slot.status = Worker.Status.BUSY
+				self.sent_tasks[address] = next_task
+
+	def __stop_session__(self):
+		if self.status is ISupervisor.Status.BUSY:
+			self.__respawn_workers__(0)
+			self.status = ISupervisor.Status.SLEEP
+			self.complete_tasks = 0
+			self.io_helper = None
+			self.sent_tasks = None
+
+	def __handle_message__(self, message, *args, **kwargs):
+		if self.status is ISupervisor.Status.BUSY:
+			if message.extra is message.DONE:
+				self.complete_tasks += 1
+				worker_output = message.body
+				self.io_helper.save_output(worker_output)
+				address = message.sent_from
+				del self.sent_tasks[address]
+				if address in self.worker_slots:
+					worker = self.worker_slots[address]
+					worker.status = Worker.Status.WAIT
+			elif message.extra is message.FAIL:
+				address = message.sent_from
+				worker_last_task = self.sent_tasks[address]
+				self.io_helper.try_it_later(worker_last_task)
+				del self.sent_tasks[address]
+				if address in self.worker_slots:
+					worker = self.worker_slots[address]
+					worker.status = Worker.Status.WAIT
+				self.error_log.append((datetime.datetime.now(), message.body))
+			if self.complete_tasks == self.io_helper.total_tasks:
+				self.status = ISupervisor.Status.DONE
+
+	def do_periodic_things(self):
+		self.__assing_tasks__()
+
+	def __assing_tasks__(self):
+		if self.status is ISupervisor.Status.BUSY:
+			for worker_slot in self.worker_slots.itervalues():
+				if worker_slot.status is Worker.Status.WAIT:
+					self.__assign_next_task__(worker_slot)
+
+	def __respawn_workers__(self, pool_size=None):
+		if pool_size is None:
+			pool_size = int(self.params["common"]["pool_size"])
+		while len(self.worker_slots) < pool_size:
+			self.__add_worker__()
+		while len(self.worker_slots) > pool_size:
+			self.__rem_worker__()
+		gc.collect()
+
+	def __add_worker__(self):
 		with self.mailbox.lock:
 			new_address = Agency.alloc_address(self.mailbox)
-			new_worker = self.worker_cls(new_address, self.params)
-			self.workers[new_address] = (new_worker, IWorker.State.WAIT)
+			new_worker = self.worker_class(new_address, self.params)
+			new_worker_slot = WorkerSlot(new_worker)
+			self.worker_slots[new_address] = new_worker_slot
 
-	def rem_worker(self):
-		with self.mailbox.lock:
-			while True:
-				for worker, status in self.workers:
-					if status is IWorker.State.WAIT:
-						worker.stop(self.mailbox)
-						address = worker.aid
-						Agency.free_address(address, self.mailbox)
-						return
-				time.sleep(0.5)
+	def __rem_worker__(self):
+		while True:
+			for slot in self.worker_slots.itervalues():
+				if slot.status is Worker.Status.WAIT:
+					slot.agent.stop(self.mailbox)
+					address = slot.agent.address
+					Agency.free_address(address, self.mailbox)
+					with self.mailbox.lock:
+						del(self.worker_slots[address])
+					return
+			for slot in self.worker_slots.itervalues():
+				if slot.agent.call("__is_free__",(),self.mailbox):
+					slot.agent.stop(self.mailbox)
+					address = slot.agent.address
+					Agency.free_address(address, self.mailbox)
+					with self.mailbox.lock:
+						del(self.worker_slots[address])
+					return
 
+	def __active_workers__(self):
+		active = 0
+		for slot in self.worker_slots.itervalues():
+			if slot.status is Worker.Status.BUSY:
+				active += 1
+		return active
 
-	def handle_message(self, message, *args, **kwargs):
-		print "Do some task"
+	def __set_pool_size__(self, new_size):
+		self.params["common"]["pool_size"] = int(new_size)
+		self.__respawn_workers__()
+
+	def __get_full_state__(self):
+		common, specific = self.__get_state__()
+		state = OrderedDict((
+			("common", OrderedDict((
+				("address", self.address),
+				("name", self.name),
+				("pool_size", len(self.worker_slots)),
+				("status", ISupervisor.Status.name(self.status)),
+				("complete_percentage", self.__complete_percentage__()),
+				("total_tasks", self.io_helper.total_tasks if self.io_helper else 0),
+				("complete_tasks", self.complete_tasks),
+				("params", self.params),
+				("active_workers", self.__active_workers__()),
+				("error_log", list(self.error_log))
+			))),
+			("specific", OrderedDict(specific)),
+		))
+		for key, value in common:
+			state["common"][key] = value
+		return state
 
 	def __get_state__(self):
-		return {}
+		return (),()
 
-	def get_state(self):
-		return {
-			"extra": OrderedDict(self.__get_state__()),
-			"common": dict([
-				("name", self.__class__.__name__),
-				("pool_size", len(self.workers)),
-				("status", self.status),
-				("job_done", self.job_done),
-				("address", self.aid),
-			]),
-		}
-
-	@property
-	def job_done(self):
-		return 12
+	def __full_default_params__(self):
+		common, specific = self.__default_params__()
+		params = OrderedDict((
+			("common", OrderedDict((
+				("pool_size", 1),
+			))),
+			("specific", OrderedDict(specific)),
+		))
+		for key, value in common:
+			params["common"][key] = value
+		return params
 
 	def __default_params__(self):
-		return []
+		return (),()
 
-	@property
-	def status(self):
-		if self.workers:
-			if all([s is IWorker.State.BUSY for w,s in self.workers]):
-				return "waiting"
-			return "busy"
-		return "sleep"
+	def __set_param__(self, section, key, new_value):
+		try:
+			self.params[section][key] = new_value
+			return new_value
+		except Exception: return None
 
-
-	def default_params(self):
-		return {
-			"superv": OrderedDict(self.__default_params__()),
-			"worker": OrderedDict(self.worker_cls.default_parsms()),
-		}
+	def __complete_percentage__(self):
+		if self.io_helper and self.complete_tasks:
+			return float(self.complete_tasks)\
+				   / float(self.io_helper.total_tasks)\
+				   * 100.0
+		return None

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block page-title %}Collector | Application Index{% endblock %}
+{% block page-content %}
+
+	{% include "collector/collector_navbar.html" %}
+
+
+	<div class="row-fluid">
+
+
+		<div class="span3">
+			{% include "collector/service_list.html" %}
+			{% include "collector/dataset_list.html" %}
+		</div>
+
+		<div class="span8">
+			<div class="page-header">
+				<h1>{{ active.common.name }}</h1>
+			</div>
+
+
+			{% include "collector/service_common_state.html" %}
+
+
+			{% include "collector/service_control_device.html" %}
+
+
+			{% include "collector/service_session_device.html" %}
+
+
+			{% include "collector/service_error_log_device.html" %}
+
+
+		</div>
+	</div>
+
+{% endblock %}
+
+{% block css %}
+	<link href="/www/css/prettify.css" rel="stylesheet">
+	<style type="text/css">
+		.com {
+			color: #93a1a1;
+		}
+
+		.lit {
+			color: #195f91;
+		}
+
+		.pun, .opn, .clo {
+			color: #93a1a1;
+		}
+
+		.fun {
+			color: #dc322f;
+		}
+
+		.str, .atv {
+			color: #D14;
+		}
+
+		.kwd, .linenums .tag {
+			color: #1e347b;
+		}
+
+		.typ, .atn, .dec, .var {
+			color: teal;
+		}
+
+		.pln {
+			color: #48484c;
+		}
+
+		.prettyprint {
+			padding: 8px;
+			background-color: #f7f7f9;
+			border: 1px solid #e1e1e8;
+		}
+
+		.prettyprint.linenums {
+			-webkit-box-shadow: inset 40px 0 0 #fbfbfc, inset 41px 0 0 #ececf0;
+			-moz-box-shadow: inset 40px 0 0 #fbfbfc, inset 41px 0 0 #ececf0;
+			box-shadow: inset 40px 0 0 #fbfbfc, inset 41px 0 0 #ececf0;
+		}
+
+			/* Specify class=linenums on a pre to get line numbering */
+		ol.linenums {
+			margin: 0 0 0 33px; /* IE indents via margin-left */
+		}
+
+		ol.linenums li {
+			padding-left: 12px;
+			color: #bebec5;
+			line-height: 18px;
+			text-shadow: 0 1px 0 #fff;
+	}
+	</style>
+{% endblock %}
+{% block js-head %}
+	<script type="text/javascript"
+			src="/www/js/farseer-collector-control.js"></script>
+	<script type="text/javascript"
+			src="/www/js/prettify.js"></script>
+{% endblock %}

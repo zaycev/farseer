@@ -78,7 +78,7 @@ class AgentTracerTest(unittest.TestCase):
 		body = ("some generic text", 1, {1,2,3}, {"a":1, "b":[0.1,-1]},)
 		time.sleep(1)
 		self.assertIsNotNone(a)
-		self.assertIsNotNone(a.aid, MAILBOX_ADDRESS_1)
+		self.assertIsNotNone(a.address, MAILBOX_ADDRESS_1)
 		a.send(body, mb)
 		a.ping(mb)
 		a.stop(mb)

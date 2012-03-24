@@ -93,7 +93,7 @@ GROUP BY
 
 -- This code adds new redundant column containing
 -- data for fast full text search. Target table is
--- set_input while target columns(for indexing) are
+-- set_input while do columns(for indexing) are
 -- title, short_text and full_text. The second command
 -- generate GIN index for redundant column
 -- for PostgreSQL >= 8.3 only. For more information,

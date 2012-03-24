@@ -8,7 +8,6 @@ import time
 import pickle
 import redis
 import random
-import worker
 import logging
 import traceback
 
@@ -18,7 +17,7 @@ from abc import abstractmethod
 
 ALPHABET = "abcdefghijklmnopqrstuvwxyz"\
 		   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"\
-		   "0123456789"#~!@#$%^&*()_+<>?"
+		   "0123456789"
 KEY_LEN = 8
 
 def gen_key(length=KEY_LEN, alphabet=ALPHABET):
@@ -42,6 +41,7 @@ class Message(object):
 	CALL = 4
 	DONE = 5
 	FAIL = 6
+	TASK = 7
 
 	def __init__(self, sent_from, sent_to, body, extra):
 		self.sent_from = sent_from
@@ -69,6 +69,8 @@ class Message(object):
 			return "DONE"
 		elif extra is Message.FAIL:
 			return "FAIL"
+		elif extra is Message.TASK:
+			return "TASK"
 
 	def dumps(self):
 		return pickle.dumps(self, pickle.HIGHEST_PROTOCOL)
@@ -153,6 +155,7 @@ class MailBox(object):
 
 class AbsAgent(object):
 	__metaclass__ = ABCMeta
+	process = True
 
 	class Latency(object):
 		EXTRA_LOW = 0
@@ -161,26 +164,30 @@ class AbsAgent(object):
 		HIGH = 3
 		EXTRA_HIGH = 4
 
-	def __init__(self, aid, unit_type=threading.Thread,
-				 latency=Latency.MEDIUM):
-		self.__aid = aid
+	def __init__(self, address,latency=Latency.MEDIUM):
+		self.__address = address
 		self.mailbox = None
 		self.recv_timeout = 1
 		self.sleep_min = None
 		self.sleep_max = None
 		self.sleep_koe = None
 		self.latency = latency
-		self.unit = unit_type(target=self.__message_loop, args=(self,))
+		if self.process:
+			self.unit = multiprocessing\
+				.Process(target=self.__message_loop__, args=(self,))
+		else:
+			self.unit = threading\
+				.Thread(target=self.__message_loop__, args=(self,))
 		self.unit.daemon = True
 		self.unit.start()
 
 	@property
-	def aid(self):
-		return self.__aid
+	def address(self):
+		return self.__address
 
 	@staticmethod
-	def __message_loop(agent):
-		agent.initialize()
+	def __message_loop__(agent):
+		agent.__init_agent__()
 		sleep = agent.sleep_min
 		while True:
 			message = agent.mailbox.pop_message()
@@ -200,34 +207,41 @@ class AbsAgent(object):
 				elif message.extra == message.STOP:
 					if message.sent_from is not None:
 						agent.mailbox.send(("stop", "ok"), message.sent_from)
-					agent.terminate()
-					exit(0)
+						agent.__stop__()
 				elif message.extra == message.PING:
 					agent.mailbox.send("pong", message.sent_from)
 				else:
-					agent.handle_message(message)
+					agent.__handle_message__(message)
 			else:
 				time.sleep(sleep)
 				if sleep < agent.sleep_max:
 					sleep *= agent.sleep_koe
+			agent.do_periodic_things()
+
+	def do_periodic_things(self):
+		pass
 
 	def send(self, message_body, send_from_mb, extra=Message.REGULAR):
-		send_from_mb.send(message_body, self.aid, extra)
+		send_from_mb.send(message_body, self.address, extra)
+
+	def __stop__(self):
+		self.terminate()
+		exit(0)
 
 	def stop(self, send_from_mb):
 		self.send(None, send_from_mb, Message.STOP)
 
 	def call(self, func_name, args, send_from_mb):
 		message = (func_name, args)
-		response = send_from_mb.call(message, self.aid)
+		response = send_from_mb.call(message, self.address)
 		return response.body
 
 	def cast(self, func_name, args, send_from_mb):
 		message = (func_name, args)
 		self.send(message, send_from_mb, Message.CAST)
 
-	def initialize(self):
-		self.mailbox = MailBox(self.aid)
+	def __init_agent__(self):
+		self.mailbox = MailBox(self.address)
 		if self.latency is self.Latency.EXTRA_LOW:
 			self.sleep_min = 0.005
 			self.sleep_max = 0.050
@@ -256,18 +270,18 @@ class AbsAgent(object):
 		self.mailbox.destroy()
 
 	@abstractmethod
-	def handle_message(self, message, *args, **kwargs):
+	def __handle_message__(self, message, *args, **kwargs):
 		raise NotImplementedError("You should implement this method")
 
 	def __unicode__(self):
-		return u"<Agent(# %s)>" % self.aid
+		return u"<Agent(# %s)>" % self.address
 
 
 class AgentTracer(AbsAgent):
 	def ping(self, send_from_mb):
 		self.send(None, send_from_mb, Message.PING)
 
-	def handle_message(self, message, *args, **kwargs):
+	def __handle_message__(self, message, *args, **kwargs):
 		self.mailbox.send(("got", message.extras, message.body),
 			message.sent_from)
 
@@ -276,13 +290,13 @@ class AgentTracer(AbsAgent):
 
 
 class Agency(AbsAgent):
+	process = True
 	agency_address = "0"
 
 	def __init__(self):
 		self.agent_addresses = None
 		self.call_back_address = gen_key()
-		super(Agency, self).__init__(Agency.agency_address,
-			unit_type=multiprocessing.Process, latency=self.Latency.MEDIUM)
+		super(Agency, self).__init__(Agency.agency_address, latency=self.Latency.MEDIUM)
 		pool = connection_pool()
 		conn = redis.Redis(connection_pool=pool)
 		resp = conn.get(self.call_back_address)
@@ -296,8 +310,8 @@ class Agency(AbsAgent):
 			conn.delete(self.call_back_address)
 			pool.disconnect()
 
-	def initialize(self):
-		super(Agency, self).initialize()
+	def __init_agent__(self):
+		super(Agency, self).__init_agent__()
 		if self.mailbox.conn.dbsize() > 0:
 			self.mailbox.conn.flushdb()
 		self.mailbox.conn.set(self.call_back_address, "SUCCESS")
@@ -337,44 +351,5 @@ class Agency(AbsAgent):
 		func_name = "_addr_exists"
 		return Agency._call_agency(func_name, (address,), send_from_mb)
 
-	def handle_message(self, message, *args, **kwargs):
+	def __handle_message__(self, message, *args, **kwargs):
 		pass
-
-
-class AbsAgentWorker(AbsAgent):
-	worker_class = worker.IWorker
-
-	def __init__(self, aid, params):
-		self.params = params
-		self.worker = None
-		super(AbsAgentWorker, self).__init__(aid)
-
-	def initialize(self):
-		super(AbsAgentWorker, self).initialize()
-		self.init_worker(self.params)
-
-	#	@abstractmethod
-	def init_worker(self, params):
-	# Put there worker initialization
-	#		raise NotImplementedError("You should implement this method")
-		pass
-
-	def handle_message(self, message, *args, **kwargs):
-		# Put there input data handling
-		task_id = message.body["id"]
-		self.mailbox.send({"id":task_id},message.sent_from, Message.DONE)
-
-
-	@staticmethod
-	def input_data_iter(params):
-		return [1,2,3]
-#		raise NotImplementedError("You should implement this method")
-
-	@staticmethod
-	def save_output_data(data, params):
-		pass
-		#		raise NotImplementedError("You should implement this method")
-
-	@staticmethod
-	def default_params():
-		return {}

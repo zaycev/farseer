@@ -6,10 +6,12 @@
 		<meta name="description" content="">
 		<meta name="author" content="">
 
-		<!-- Le JavaScript -->
+		<!-- *le JavaScript -->
 		<script src="/www/js/jquery-1.7.1.min.js"></script>
+		<script src="/www/js/jquery.json.js"></script>
+		{% block js-head %}{% endblock %}
 
-		<!-- Le styles -->
+		<!-- *le styles -->
 		<link href="/www/css/bootstrap.css" rel="stylesheet">
 		<link href="/www/css/bootstrap-responsive.css" rel="stylesheet">
 		<style type="text/css">
@@ -18,10 +20,11 @@
 				padding-bottom: 40px;
 			}
 		</style>
+
 		{% block css %}{% endblock %}
 	</head>
 	<body>
-		<div class="container-fluid" style="margin:0 64px 0 64px;">
+		<div class="container-fluid" style="margin:0 64px 0 64px;min-width:1024px;">
 
 			<div class="row-fluid">
 				<div style="width:320px;margin: 10px 0  16px -64px;">
@@ -36,8 +39,8 @@
 
 			<footer>
 				<p style="margin:32px 0 128px 0;">
-					&copy; Farsser Project 2012,
-					<a href="http://zvm.me/">zvm.me</a>
+					Farseer Project 2012
+					&copy; <a href="http://zvm.me/">zvm.me</a>
 				</p>
 			</footer>
 

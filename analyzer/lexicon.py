@@ -46,8 +46,8 @@ def lexicon(input_tab="set_corpora",
 
 
 	# step 2
-	# Creating or truncating the target (output) table.
-	logging.debug("create or truncate target ({0}) table".format(TextDoc.__tablename__))
+	# Creating or truncating the do (output) table.
+	logging.debug("create or truncate do ({0}) table".format(TextDoc.__tablename__))
 	DbBase.metadata.create_all(db_engine)
 	db_session.query(TaggedTerm).delete(synchronize_session=False)
 

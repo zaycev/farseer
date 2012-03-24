@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from django.db import models
+from django.db.models import Min, Max
 
 class DocumentSource(models.Model):
 	name = models.CharField(max_length=128, null=False, blank=False)
@@ -22,12 +23,51 @@ class DocumentSource(models.Model):
 	def make_river_url(self, offset):
 		return self.river_pattern % str(offset)
 
+
+class DataSet(models.Model):
+	name = models.CharField(max_length=48, null=False, blank=False,
+		db_index=True, unique=True)
+	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False)
+	summory = models.CharField(max_length=4096, null=True, blank=True)
+	sources = models.ManyToManyField(DocumentSource)
+
+	def __unicode__(self):
+		return u"<Dataset('#%s', '%s')>" % (self.id, self.name)
+
+	@property
+	def mime_types(self):
+		for m in self.rawriver_set.values("mime_type").distinct():
+			m["count"] = RawRiver.objects\
+						.filter(mime_type=m["mime_type"]).count()
+			yield m
+
+	@property
+	def counted_sources(self):
+		for source in self.sources.all():
+			yield {
+				"source": source,
+				"rawrivers": RawRiver.objects\
+							.filter(dataset=self, source=source).count(),
+			}
+
+	@property
+	def collecting_period(self):
+		min_date = RawRiver.objects.filter(dataset=self).aggregate(Min("timestamp"))
+		max_date = RawRiver.objects.filter(dataset=self).aggregate(Max("timestamp"))
+		return {
+			"since": min_date["timestamp__min"],
+			"to": max_date["timestamp__max"],
+		}
+
+
 class RawRiver(models.Model):
 	url = models.URLField(max_length=256, null=False, blank=False,
 		verify_exists=False)
 	source = models.ForeignKey(DocumentSource, rel_class=models.ManyToOneRel,
 		null=False)
-	timestamp = models.DateTimeField(auto_created=True, null=False, blank=False)
+	dataset = models.ForeignKey(DataSet, rel_class=models.ManyToOneRel,
+		null=False, db_index=True)
+	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False)
 	body = models.TextField(null=False, blank=False)
 	mime_type = models.CharField(max_length=32, null=False, blank=False)
 
@@ -36,20 +76,12 @@ class RawRiver(models.Model):
 												   self.timestamp)
 
 
-class River(models.Model):
-	url = models.URLField(max_length=256, null=False, blank=False,
-		verify_exists=False)
-	source = models.ForeignKey(DocumentSource, rel_class=models.ManyToOneRel,
-		null=False)
-
-	def __unicode__(self):
-		return u"<River('#%s', '%s')>" % (self.id, self.source.name)
-
-
 class ExtractedUrl(models.Model):
 	url = models.URLField(max_length=256, null=False, blank=False,
 		verify_exists=False, unique=True, db_index=True)
-	river = models.ForeignKey(River, null=False)
+	river = models.ForeignKey(RawRiver, null=False)
+	dataset = models.ForeignKey(DataSet, rel_class=models.ManyToOneRel,
+		null=False, db_index=True)
 
 	def __unicode__(self):
 		return u"<ExtractedUrl('#%s', '%s', '%s')>" % (self.id, self.river.id, self.url)
@@ -59,7 +91,7 @@ class RawDocument(models.Model):
 		db_index=True, null=False, blank=False)
 	source = models.ForeignKey(DocumentSource, rel_class=models.ManyToOneRel,
 		null=False)
-	timestamp = models.DateTimeField(auto_created=True, null=False, blank=False)
+	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False)
 	body = models.TextField(null=False, blank=False)
 	mime_type = models.CharField(max_length=32, null=False, blank=False)
 
@@ -137,7 +169,7 @@ class RawProbe(models.Model):
 		null=False)
 	document = models.ForeignKey(Document, rel_class=models.ManyToOneRel,
 		null=False)
-	timestamp = models.DateTimeField(auto_created=True, null=False, blank=False)
+	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False)
 	body = models.TextField(null=False, blank=False)
 	mime_type = models.CharField(max_length=32, null=False, blank=False)
 

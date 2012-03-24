@@ -1,0 +1,55 @@
+<div class="row-fluid">
+	<div class="span6">
+
+		<legend>
+			Session Parameters:
+		</legend>
+
+		<table class="table table-striped table-condensed table-bordered">
+			<tbody style="font-family:'Menlo', 'Monaco', 'Consolas', 'Courier', monospace;">
+
+			{% for section_key, section in active.common.params.items %}
+				{% for key, value in section.items %}
+					<tr>
+						<td style="text-align:right; vertical-align:middle;">{{ key }}</td>
+						<td>
+							<div style="height:28px;">
+								<div class="form-inline">
+									<div class="input-append">
+										<input id="value-param-{{ section_key }}-{{ key }}"
+											   style="width:112px;" value="{{ value }}"/>
+										<button style="width:64px;margin-left:-10px;"
+												id="button-change-{{ section_key }}-{{ key }}"
+												class="btn"
+												type="button">
+											Change
+										</button>
+									</div>
+								</div>
+							</div>
+						</td>
+					</tr>
+				{% endfor %}
+			{% endfor %}
+
+			</tbody>
+		</table>
+
+		<script>
+			$(function () {
+				var address = "{{ active.common.address }}";
+				var func = "__set_param__";
+				{% for section_key, section in active.common.params.items %}
+					{% for key, value in section.items %}
+						var btn = "#button-change-{{ section_key }}-{{ key }}";
+						var make_args = function () {
+							return ["{{ section_key }}", "{{ key }}", $("#value-param-{{ section_key }}-{{ key }}").val()]
+						};
+						$(btn).bind("click", Farseer.Collector.call(address, func, make_args));
+					{% endfor %}
+				{% endfor %}
+			});
+		</script>
+
+	</div>
+</div>

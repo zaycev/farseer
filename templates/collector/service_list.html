@@ -1,0 +1,18 @@
+<div class="well" style="padding:8px 0 0 0;">
+	<ul class="nav nav-list">
+		<li class="nav-header">Collector Services</li>
+		{% for service in services %}
+			<li {% if service.common.address == active.common.address %}class="active"{% endif %}>
+				<a href="/apps/collector/service/{{ service.common.address }}">
+					{{ service.common.name }}
+					<span class="badge">{{ service.common.status }}</span>
+				</a>
+			</li>
+		{% endfor %}
+		<li class="divider"></li>
+		<li>
+			<a><i class="icon-info-sign"></i> System Monitor</a>
+		</li>
+	</ul>
+	<br/>
+</div>

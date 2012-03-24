@@ -1,0 +1,13 @@
+<div class="well" style="padding:8px 0 0 0;">
+	<ul class="nav nav-list">
+		<li class="nav-header">Datasets Browser</li>
+		{% for dataset in datasets %}
+			<li {% if dataset.id == active.id %}class="active"{% endif %}>
+				<a href="/apps/collector/dataset/{{ dataset.id }}">
+					{{ dataset.name }}
+				</a>
+			</li>
+		{% endfor %}
+	</ul>
+	<br/>
+</div>

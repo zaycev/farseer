@@ -1,0 +1,60 @@
+<div class="row-fluid">
+
+	{# *le worker-pool-size switcher #}
+	<div class="span6">
+		<div class="well" style="height:32px;">
+			<div class="form-inline">
+				<div class="input-append">
+					<legend>
+						Worker pool size:
+						<input id="value-real-pool-size"
+							   class="span1"
+							   type="text"
+							   name="pool_size"
+							   maxlength="4"
+							   value="{{ active.common.pool_size }}">
+						<button style="width:64px;margin-left:-10px;"
+								id="button-change-pool-size"
+								class="btn"
+								type="button">
+							Change
+						</button>
+					</legend>
+
+					<script>
+						$(function () {
+							var btn = "#button-change-pool-size";
+							var inp = "#value-real-pool-size";
+							var address = "{{ active.common.address }}";
+							var func = "__set_pool_size__";
+							var make_args = function () {
+								return [$(inp).val()]
+							};
+							$(btn).bind("click", Farseer.Collector.call(address, func, make_args));
+						});
+					</script>
+
+				</div>
+			</div>
+		</div>
+	</div>
+
+	{# *le main control buttons #}
+	<div class="span6">
+		<div class="well">
+			<div class="btn-group" style="width:192px;margin: 0 auto 0 auto;">
+				<button id="button-run" class="btn btn-success" style="width:64px;">Run</button>
+				<button id="button-stop" class="btn btn-warning" style="width:64px;">Stop</button>
+				<button id="button-kill" class="btn btn-danger" style="width:64px;">Kill</button>
+			</div>
+		</div>
+		<script>
+			var address = "{{ active.common.address }}";
+			var make_args = function () {return [];};
+			$("#button-run").bind("click", Farseer.Collector.call(address, "__run_session__", make_args));
+			$("#button-stop").bind("click", Farseer.Collector.call(address, "__stop_session__", make_args));
+			$("#button-kill").bind("click", Farseer.Collector.call(address, "__stop__", make_args));
+		</script>
+
+	</div>
+</div>
