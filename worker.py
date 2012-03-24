@@ -75,12 +75,14 @@ class Worker(AbsAgent):
 				result = self.do_work(task)
 				self.mailbox.send(result, message.sent_from, Message.DONE)
 			except Exception:
-				error_str = "%s.__handle_message__: \n%s"\
-							% (self.__class__.__name__, traceback.format_exc())
+				error_str = u"task:%s\m%s.__handle_message__: \n%s"\
+							% (str(task),
+							   self.__class__.__name__,
+							   traceback.format_exc())
 				self.mailbox.send(error_str, message.sent_from, Message.FAIL)
 		else:
-			error_str = "%s.__handle_message__" \
-						"got wrongmessage type: %s %s"\
+			error_str = u"%s.__handle_message__" \
+						u"got wrongmessage type: %s %s"\
 						% (self.__class__.__name__,
 						   message.extra,
 						   message.extra_name(message.extra))
