@@ -25,4 +25,4 @@ LINK_SPOT_XPATH = "/html/body/div[2]/div[3]/div[1]/div[1]/div/div/div/article/di
 def spot_links(html):
 	tree = fromstring(html)
 	paths = tree.xpath(LINK_SPOT_XPATH)
-	return ["http://www.lookatme.ru/%s" % article_path for article_path in paths]
+	return ["http://www.lookatme.ru%s" % article_path for article_path in paths]
