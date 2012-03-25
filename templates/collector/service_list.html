@@ -5,7 +5,7 @@
 			<li {% if service.common.address == active.common.address %}class="active"{% endif %}>
 				<a href="/apps/collector/service/{{ service.common.address }}">
 					{{ service.common.name }}
-					<span class="badge">{{ service.common.status }}</span>
+					<span class="badge">STATUS: {{ service.common.status }}</span>
 				</a>
 			</li>
 		{% endfor %}

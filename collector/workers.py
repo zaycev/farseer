@@ -2,9 +2,11 @@
 
 import django.db
 
+import bundle
+
 from worker import Worker
 from worker import WorkerIOHelper
-from worker import TextFetching
+from worker import TextFetcher
 
 from collector.models import DocumentSource
 from collector.models import DataSet
@@ -18,57 +20,46 @@ from lxml.html import fromstring
 # River Fethcing ###############################################################
 ################################################################################
 
-class RiverFetcherAgent(Worker):
-
-	def __init_worker__(self, params):
-		source = DocumentSource.objects\
-			.get(id=params["specific"]["source_id"])
-		self.dataset, created = DataSet.objects\
-			.get_or_create(name=params["specific"]["dataset"])
-		self.fetcher = RiverFetcher(source)
-		if not created:
-			self.dataset.sources.add(source)
-			self.dataset.save()
-
-	def do_work(self, page_id):
-		raw_river = self.fetcher.fetch_river(page_id)
-		raw_river.dataset = self.dataset
-		return self.serializer.serialize([raw_river])
-
-	@staticmethod
-	def make_io_helper(params):
-		return RawRiverIOHelper(params)
-
-
 class RawRiverIOHelper(WorkerIOHelper):
 
 	def __init__(self, params):
 		django.db.close_connection()
 		super(RawRiverIOHelper, self).__init__(params)
+		self.bundle = bundle.get_bundle(params["specific"]["bundle_key"])
 		self.pages_count = int(params["specific"]["pages_count"])
-		self.start_page = int(params["specific"]["start_page"])
-		self.source_id = int(params["specific"]["source_id"])
-		self.doc_source = DocumentSource.objects.get(id=self.source_id)
-		self.task_iter = xrange(self.start_page,
-								self.start_page + self.pages_count).__iter__()
+		start_page = int(params["specific"]["start_page"])
+		self.task_iter =\
+			self.bundle.make_river_link_iterator(start_page, self.pages_count)
 
 	@property
 	def total_tasks(self):
 		return self.pages_count
 
+class RiverFetcherAgent(Worker):
 
-class RiverFetcher(TextFetching):
+	def __init_worker__(self, params):
+		self.bundle = bundle.get_bundle(params["specific"]["bundle_key"])
+		self.doc_source = self.bundle.get_or_create_source()
+		self.dataset, created = DataSet.objects\
+			.get_or_create(name=params["specific"]["dataset"])
+		if not created:
+			self.dataset.sources.add(self.doc_source)
+			self.dataset.save()
+		self.fetcher = TextFetcher()
 
-	def __init__(self, source):
-		super(RiverFetcher, self).__init__()
-		self.source = source
+	def do_work(self, page_url):
+		river_body = self.fetcher.fetch_text(page_url)
+		raw_river = RawRiver(
+			body = river_body,
+			source = self.doc_source,
+			dataset = self.dataset,
+			mime_type = self.doc_source.mime_type
+		)
+		return self.serializer.serialize([raw_river])
 
-	def fetch_river(self, page_offset):
-		url = self.source.make_river_url(page_offset)
-		body = self.fetch_text(url)
-		raw_river = RawRiver(url=url, body=body, mime_type="text/html",
-			source=self.source)
-		return raw_river
+	@staticmethod
+	def make_io_helper(params):
+		return RawRiverIOHelper(params)
 
 
 ################################################################################
@@ -78,9 +69,8 @@ class RiverFetcher(TextFetching):
 class LinkXSpotterAgent(Worker):
 
 	def __init_worker__(self, params):
-		self.link_xpath = params["specific"]["link_xpath"]
-		self.input_source = DocumentSource.objects\
-			.get(id=params["specific"]["input_source_id"])
+		self.bundle = bundle.get_bundle(params["specific"]["bundle_key"])
+		self.input_source = self.bundle.get_or_create_source()
 		self.input_dataset = DataSet.objects\
 			.get(name=params["specific"]["input_dataset"])
 		self.output_dataset, created = DataSet.objects.\
@@ -90,13 +80,12 @@ class LinkXSpotterAgent(Worker):
 			self.output_dataset.save()
 
 	def do_work(self, raw_river):
-		tree = fromstring(raw_river.body)
-		urls = tree.xpath(self.link_xpath)
+		links = self.bundle.spot_links(raw_river.body)
 		worker_output = []
-		for url in urls:
+		for url in links:
 			extracted_url = ExtractedUrl(
 				url = url,
-				river = raw_river,
+				source = self.input_source,
 				dataset = self.output_dataset,
 			)
 			worker_output.append(extracted_url)
@@ -112,8 +101,8 @@ class RiverLinkIOHelper(WorkerIOHelper):
 	def __init__(self, params):
 		django.db.close_connection()
 		super(RiverLinkIOHelper, self).__init__(params)
-		self.input_source = DocumentSource.objects\
-			.get(id=params["specific"]["input_source_id"])
+		self.bundle = bundle.get_bundle(params["specific"]["bundle_key"])
+		self.input_source = self.bundle.get_or_create_source()
 		self.input_dataset = DataSet.objects\
 			.get(name=params["specific"]["input_dataset"])
 		self.rivers = RawRiver.objects\

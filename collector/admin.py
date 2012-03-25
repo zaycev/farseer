@@ -4,8 +4,8 @@ from django.contrib import admin
 import collector.models as collector
 
 class DocumentSourceAdmin(admin.ModelAdmin):
-	list_display = ("name", "symbol", "url", "id",)
-	list_filter = ("name", "symbol",)
+	list_display = ("name", "key", "url", "id",)
+	list_filter = ("name", "key",)
 
 class RawRiverAdmin(admin.ModelAdmin):
 	list_display = ("url", "timestamp", "source", "mime_type",)

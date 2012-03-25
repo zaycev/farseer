@@ -75,14 +75,14 @@ class Worker(AbsAgent):
 				result = self.do_work(task)
 				self.mailbox.send(result, message.sent_from, Message.DONE)
 			except Exception:
-				error_str = u"task:%s\m%s.__handle_message__: \n%s"\
+				error_str = u"task: < %s >\n%s.__handle_message__: \n%s"\
 							% (str(task),
 							   self.__class__.__name__,
 							   traceback.format_exc())
 				self.mailbox.send(error_str, message.sent_from, Message.FAIL)
 		else:
 			error_str = u"%s.__handle_message__" \
-						u"got wrongmessage type: %s %s"\
+						u" got wrongmessage type: %s %s"\
 						% (self.__class__.__name__,
 						   message.extra,
 						   message.extra_name(message.extra))
@@ -99,18 +99,9 @@ class Worker(AbsAgent):
 		raise WorkerIOHelper(params)
 
 
-class IWork(object):
-	__metaclass__ = ABCMeta
-
-	@abstractmethod
-	def do(self, *args, **kwargs):
-		raise NotImplementedError("You should implement this method")
-
-
-class AbsDataFetching(IWork):
+class DataFetcher(object):
 
 	def __init__(self):
-		super(AbsDataFetching, self).__init__()
 		self.fetch_timeout = 45
 
 	def fetch_data(self, url):
@@ -118,14 +109,14 @@ class AbsDataFetching(IWork):
 		return req
 
 
-class TextFetching(AbsDataFetching):
+class TextFetcher(DataFetcher):
 
 	def __init__(self, encoding="utf-8"):
-		super(TextFetching, self).__init__()
+		super(TextFetcher, self).__init__()
 		self.encoding = encoding
 
 	def fetch_text(self, url):
-		req = super(TextFetching, self).fetch_data(url)
+		req = super(TextFetcher, self).fetch_data(url)
 		encoding = self.encoding
 		try:
 			content_type_params = req.info().getplist()
@@ -138,6 +129,3 @@ class TextFetching(AbsDataFetching):
 					break
 		except Exception: pass
 		return unicode(req.read(), encoding)
-
-	def do(self, url):
-		return self.fetch_data(url)

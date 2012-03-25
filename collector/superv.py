@@ -15,7 +15,7 @@ class RiverFetchingSupervisor(AbsSupervisor):
 		return (
 			("pool_size", 48),
 		),(
-			("source_id", 1),
+			("bundle_key", ""),
 			("start_page", 5),
 			("pages_count", 1000),
 			("dataset", "new dataset"),
@@ -26,7 +26,7 @@ class RiverFetchingSupervisor(AbsSupervisor):
 
 
 class LinkXSpotter(AbsSupervisor):
-	name = "Link XSpotter"
+	name = "Link Spotter"
 
 	def __init__(self, address):
 		super(LinkXSpotter, self).__init__(address,
@@ -36,10 +36,9 @@ class LinkXSpotter(AbsSupervisor):
 		return (
 			("pool_size", 2),
 		),(
-			("input_source_id", 1),
+			("bundle_key", ""),
 			("input_dataset", ""),
 			("output_dataset", ""),
-			("link_xpath", "/html/body/div[2]/div[3]/div[1]/div[1]/div/div/div/article/div[2]/header/div[2]/a/@href")
 		)
 
 	def __get_state__(self):

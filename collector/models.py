@@ -2,26 +2,18 @@
 from django.db import models
 from django.db.models import Min, Max
 
+
 class DocumentSource(models.Model):
 	name = models.CharField(max_length=128, null=False, blank=False)
-	symbol = models.CharField(max_length=16, null=False, blank=False,
+	key = models.CharField(max_length=16, null=False, blank=False,
 		db_index=True)
 	url = models.URLField(max_length=256, null=False, blank=False, unique=True,
 		verify_exists=False)
-	river_pattern =  models.CharField(max_length=256, null=False, blank=False)
+	mime_type = models.CharField(max_length=32, null=False, blank=False,
+		default="text/html")
 
 	def __unicode__(self):
 		return u"<DocumentSource('#%s', '%s')>" % (self.id, self.name)
-
-	def river_url_iter(self, offset, length):
-		current = offset + 1
-		high = offset + length + 1
-		while current <= high:
-			yield self.make_river_url(current)
-			current += 1
-
-	def make_river_url(self, offset):
-		return self.river_pattern % str(offset)
 
 
 class DataSet(models.Model):
@@ -59,6 +51,9 @@ class DataSet(models.Model):
 			"to": max_date["timestamp__max"],
 		}
 
+	class Meta:
+		ordering = ("name",)
+
 
 class RawRiver(models.Model):
 	url = models.URLField(max_length=256, null=False, blank=False,
@@ -79,9 +74,10 @@ class RawRiver(models.Model):
 class ExtractedUrl(models.Model):
 	url = models.URLField(max_length=256, null=False, blank=False,
 		verify_exists=False, unique=True, db_index=True)
-	river = models.ForeignKey(RawRiver, null=False)
 	dataset = models.ForeignKey(DataSet, rel_class=models.ManyToOneRel,
 		null=False, db_index=True)
+	source = models.ForeignKey(DocumentSource, rel_class=models.ManyToOneRel,
+		null=False)
 
 	def __unicode__(self):
 		return u"<ExtractedUrl('#%s', '%s', '%s')>" % (self.id, self.river.id, self.url)

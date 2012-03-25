@@ -4,7 +4,7 @@
 import unittest
 
 from collector.models import DocumentSource
-from collector.workers import TextFetching
+from collector.workers import TextFetcher
 from collector.workers import RiverFetcher
 
 
@@ -12,12 +12,12 @@ TEXT_FETCHER_URL = "http://google.com"
 class TextDataFetcherTest(unittest.TestCase):
 
 	def test_init(self):
-		fetcher = TextFetching()
-		self.assertEqual(type(fetcher), TextFetching)
+		fetcher = TextFetcher()
+		self.assertEqual(type(fetcher), TextFetcher)
 		self.assertEqual(fetcher.encoding, "utf-8")
 
 	def test_fetch_text(self):
-		fetcher = TextFetching()
+		fetcher = TextFetcher()
 		text = fetcher.fetch_text(TEXT_FETCHER_URL)
 		self.assertEqual(type(text), unicode)
 		self.assertTrue(len(text) > 0)

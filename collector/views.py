@@ -2,6 +2,7 @@
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.shortcuts import render_to_response
+from bundle import get_bundles
 from agent import Agency, MailBox
 from collector.superv import RiverFetchingSupervisor
 from collector.superv import LinkXSpotter
@@ -27,18 +28,22 @@ def show_service(request, address):
 	service_states = OrderedDict([(serv.address, serv.call("__get_full_state__", (), mb))
 						for serv in services.itervalues()])
 	datasets = DataSet.objects.all()
+	bundles = get_bundles()
 	return render_to_response("collector/show_service.html", {
 		"services": service_states.itervalues(),
-		"active": service_states[address],
+		"bundles": bundles,
 		"datasets": datasets,
+		"active": service_states[address],
 	})
 
 def show_dataset(request, dataset_id):
 	service_states = OrderedDict([(serv.address, serv.call("__get_full_state__", (), mb))
 		for serv in services.itervalues()])
 	datasets = DataSet.objects.all()
+	bundles = get_bundles()
 	return render_to_response("collector/show_dataset.html", {
 		"services": service_states.itervalues(),
+		"bundles": bundles,
 		"datasets": datasets,
 		"active": DataSet.objects.get(id=dataset_id),
 	})
