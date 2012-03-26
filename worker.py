@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 import traceback
-import threading
-import multiprocessing
 from django.core import serializers
 from collections import deque
 from agent import AbsAgent, Message
 from abc import ABCMeta
 from abc import abstractmethod
-
-import urllib2
+import urllib
 
 class WorkerIOHelper(object):
 	__metaclass__ = ABCMeta
@@ -75,14 +72,14 @@ class Worker(AbsAgent):
 				result = self.do_work(task)
 				self.mailbox.send(result, message.sent_from, Message.DONE)
 			except Exception:
-				error_str = u"task: < %s >\n%s.__handle_message__: \n%s"\
+				error_str = u"task: <%s>\n%s.__handle_message__: \n%s"\
 							% (str(task),
 							   self.__class__.__name__,
 							   traceback.format_exc())
 				self.mailbox.send(error_str, message.sent_from, Message.FAIL)
 		else:
 			error_str = u"%s.__handle_message__" \
-						u" got wrongmessage type: %s %s"\
+						u"got wrongmessage type: %s %s"\
 						% (self.__class__.__name__,
 						   message.extra,
 						   message.extra_name(message.extra))
@@ -99,24 +96,14 @@ class Worker(AbsAgent):
 		raise WorkerIOHelper(params)
 
 
-class DataFetcher(object):
+class TextFetcher(object):
 
-	def __init__(self):
-		self.fetch_timeout = 45
-
-	def fetch_data(self, url):
-		req = urllib2.urlopen(url=url, timeout=self.fetch_timeout)
-		return req
-
-
-class TextFetcher(DataFetcher):
-
-	def __init__(self, encoding="utf-8"):
-		super(TextFetcher, self).__init__()
+	def __init__(self, encoding="utf-8", timeout=45):
+		self.timeout = timeout
 		self.encoding = encoding
 
 	def fetch_text(self, url):
-		req = super(TextFetcher, self).fetch_data(url)
+		req = urllib.urlopen(url)
 		encoding = self.encoding
 		try:
 			content_type_params = req.info().getplist()

@@ -11,6 +11,10 @@ from collections import OrderedDict
 import json
 import time
 
+import urllib2
+request = urllib2.Request("")
+
+
 Agency()
 mb = MailBox("@morbo")
 supervisors = [
@@ -20,6 +24,15 @@ supervisors = [
 services = OrderedDict([(sup.address, sup) for sup in supervisors])
 
 def apps(request):
+
+	import re
+	regex = re.compile('^HTTP_')
+	headers = dict((regex.sub('', header), value) for (header, value)
+		in request.META.items() if header.startswith('HTTP_'))
+	print "\n\n"
+	for k in headers:
+		print k, headers[k]
+	print "\n\n"
 	return redirect("/apps/collector/service/%s" % services.values()[0].address)
 
 def show_service(request, address):

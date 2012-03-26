@@ -50,6 +50,7 @@ class RiverFetcherAgent(Worker):
 	def do_work(self, page_url):
 		river_body = self.fetcher.fetch_text(page_url)
 		raw_river = RawRiver(
+			url = page_url,
 			body = river_body,
 			source = self.doc_source,
 			dataset = self.dataset,
