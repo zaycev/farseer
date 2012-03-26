@@ -25,7 +25,9 @@ class WorkerIOHelper(object):
 	def save_output(self, worker_output_json):
 		worker_output = self.deserialize(worker_output_json)
 		for record in worker_output:
-			record.save()
+			try:
+				record.save()
+			except Exception: pass
 
 	def deserialize(self, json):
 		return serializers.deserialize("json", json)

@@ -2,6 +2,7 @@
 from collector.models import DocumentSource
 from lxml.html import fromstring
 
+
 BUNDLE_KEY = "LAM"
 BUNDLE_NAME = "Look At Me"
 
@@ -16,6 +17,8 @@ def get_or_create_source():
 	return source
 
 
+def rivers_count(start, length):
+	return length
 def make_river_link_iterator(start, length):
 	for page in xrange(start, start + length):
 		yield "http://www.lookatme.ru/flow?page=%s" % page

@@ -8,13 +8,9 @@ from worker import Worker
 from worker import WorkerIOHelper
 from worker import TextFetcher
 
-from collector.models import DocumentSource
 from collector.models import DataSet
 from collector.models import RawRiver
 from collector.models import ExtractedUrl
-
-from lxml.html import fromstring
-
 
 ################################################################################
 # River Fethcing ###############################################################
@@ -23,13 +19,14 @@ from lxml.html import fromstring
 class RawRiverIOHelper(WorkerIOHelper):
 
 	def __init__(self, params):
+		start_page = int(params["specific"]["start_page"])
+		pages_count = int(params["specific"]["pages_count"])
 		django.db.close_connection()
 		super(RawRiverIOHelper, self).__init__(params)
 		self.bundle = bundle.get_bundle(params["specific"]["bundle_key"])
-		self.pages_count = int(params["specific"]["pages_count"])
-		start_page = int(params["specific"]["start_page"])
+		self.pages_count = self.bundle.rivers_count(start_page, pages_count)
 		self.task_iter =\
-			self.bundle.make_river_link_iterator(start_page, self.pages_count)
+			self.bundle.make_river_link_iterator(start_page, pages_count)
 
 	@property
 	def total_tasks(self):
