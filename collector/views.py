@@ -4,8 +4,9 @@ from django.shortcuts import redirect
 from django.shortcuts import render_to_response
 from bundle import get_bundles
 from agent import Agency, MailBox
-from collector.superv import RiverFetchingSupervisor
-from collector.superv import LinkXSpotter
+from collector.superv import RiverFetcher
+from collector.superv import LinkSpotter
+from collector.superv import PageFetcher
 from collector.models import DataSet
 from collections import OrderedDict
 import json
@@ -18,8 +19,9 @@ request = urllib2.Request("")
 Agency()
 mb = MailBox("@morbo")
 supervisors = [
-	RiverFetchingSupervisor(Agency.alloc_address(mb)),
-	LinkXSpotter(Agency.alloc_address(mb)),
+	RiverFetcher(Agency.alloc_address(mb)),
+	LinkSpotter(Agency.alloc_address(mb)),
+	PageFetcher(Agency.alloc_address(mb)),
 ]
 services = OrderedDict([(sup.address, sup) for sup in supervisors])
 

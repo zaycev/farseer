@@ -6,6 +6,7 @@ from agent import AbsAgent, Message
 from abc import ABCMeta
 from abc import abstractmethod
 import urllib
+import logging
 
 class WorkerIOHelper(object):
 	__metaclass__ = ABCMeta
@@ -27,6 +28,9 @@ class WorkerIOHelper(object):
 		for record in worker_output:
 			try:
 				record.save()
+				logging.debug(u"%s: saved %s"
+					% (self.__class__.__name__, record.__unicode__())
+				)
 			except Exception: pass
 
 	def deserialize(self, json):

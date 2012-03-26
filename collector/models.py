@@ -83,23 +83,26 @@ class ExtractedUrl(models.Model):
 		return u"<ExtractedUrl('#%s', '%s')>" % (self.id, self.url)
 
 	class Meta:
-		unique_together = ("url", "dataset")
+		unique_together = ("url", "dataset",)
 
-#class RawDocument(models.Model):
-#	url = models.ForeignKey(ExtractedUrl, to_field="url", max_length=256,
-#		db_index=True, null=False, blank=False)
-#	source = models.ForeignKey(DocumentSource, rel_class=models.ManyToOneRel,
-#		null=False)
-#	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False)
-#	body = models.TextField(null=False, blank=False)
-#	mime_type = models.CharField(max_length=32, null=False, blank=False)
-#
-#	def __unicode__(self):
-#		return u"<RawDocument('#%s', '%s', '%s')>" % (self.id, self.url,
-#													  self.mime_type)
-#
-#
-#class Author(models.Model):
+class RawDocument(models.Model):
+	url = models.URLField(max_length=256, null=False, blank=False,
+		verify_exists=False, db_index=True)
+	dataset = models.ForeignKey(DataSet, rel_class=models.ManyToOneRel,
+		null=False, db_index=True)
+	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False)
+	body = models.TextField(null=False, blank=False)
+	mime_type = models.CharField(max_length=32, null=False, blank=False,
+		default="text/html")
+
+	def __unicode__(self):
+		return u"<RawDocument('#%s', '%s', '%s')>" % (self.id, self.url,
+													  self.mime_type)
+
+	class Meta:
+		unique_together = ("url", "dataset",)
+
+		#class Author(models.Model):
 #	name = models.CharField(max_length=128, null=False, blank=False)
 #	url = models.URLField(max_length=256, null=False, blank=False, unique=True,
 #		verify_exists=False, db_index=True)

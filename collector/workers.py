@@ -11,6 +11,7 @@ from worker import TextFetcher
 from collector.models import DataSet
 from collector.models import RawRiver
 from collector.models import ExtractedUrl
+from collector.models import RawDocument
 
 ################################################################################
 # River Fethcing ###############################################################
@@ -39,9 +40,7 @@ class RiverFetcherAgent(Worker):
 		self.doc_source = self.bundle.get_or_create_source()
 		self.dataset, created = DataSet.objects\
 			.get_or_create(name=params["specific"]["dataset"])
-		if not created:
-			self.dataset.sources.add(self.doc_source)
-			self.dataset.save()
+		if not created: self.dataset.save()
 		self.fetcher = TextFetcher()
 
 	def do_work(self, page_url):
@@ -61,21 +60,17 @@ class RiverFetcherAgent(Worker):
 
 
 ################################################################################
-# River Fethcing ###############################################################
+# Link Spotting ################################################################
 ################################################################################
 
-class LinkXSpotterAgent(Worker):
+class LinkSpotterAgent(Worker):
 
 	def __init_worker__(self, params):
 		self.bundle = bundle.get_bundle(params["specific"]["bundle_key"])
 		self.input_source = self.bundle.get_or_create_source()
-		self.input_dataset = DataSet.objects\
-			.get(name=params["specific"]["input_dataset"])
 		self.output_dataset, created = DataSet.objects.\
 			get_or_create(name=params["specific"]["output_dataset"])
-		if not created:
-			self.output_dataset.sources.add(self.input_source)
-			self.output_dataset.save()
+		if not created: self.output_dataset.save()
 
 	def do_work(self, raw_river):
 		links = self.bundle.spot_links(raw_river.body)
@@ -111,3 +106,46 @@ class RiverLinkIOHelper(WorkerIOHelper):
 	@property
 	def total_tasks(self):
 		return self.rivers_count
+
+
+################################################################################
+# Link Spotting ################################################################
+################################################################################
+
+
+class PageFetcherAgent(Worker):
+
+	def __init_worker__(self, params):
+		self.output_dataset, created = DataSet.objects.\
+			get_or_create(name=params["specific"]["output_dataset"])
+		if not created: self.output_dataset.save()
+		self.fetcher = TextFetcher()
+
+	def do_work(self, extracted_url):
+		body = self.fetcher.fetch_text(extracted_url.url)
+		raw_doc = RawDocument(
+			url = extracted_url.url,
+			dataset = self.output_dataset,
+			body = body,
+		)
+		return self.serializer.serialize([raw_doc])
+
+	@staticmethod
+	def make_io_helper(params):
+		return RawDocumentIOHelper(params)
+
+
+class RawDocumentIOHelper(WorkerIOHelper):
+
+	def __init__(self, params):
+		django.db.close_connection()
+		super(RawDocumentIOHelper, self).__init__(params)
+		self.input_dataset = DataSet.objects\
+			.get(name=params["specific"]["input_dataset"])
+		self.e_urls = ExtractedUrl.objects.filter(dataset = self.input_dataset)
+		self.e_urls_count = self.e_urls.count()
+		self.task_iter = self.e_urls.__iter__()
+
+	@property
+	def total_tasks(self):
+		return self.e_urls_count
