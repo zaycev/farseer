@@ -112,7 +112,6 @@ class RiverLinkIOHelper(WorkerIOHelper):
 # Link Spotting ################################################################
 ################################################################################
 
-
 class PageFetcherAgent(Worker):
 
 	def __init_worker__(self, params):
