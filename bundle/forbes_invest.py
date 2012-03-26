@@ -40,7 +40,7 @@ def make_river_link_iterator(start, length):
 			yield REQUEST_URL_PAT % (probe_date, probe_time)
 
 
-LINK_SPOT_XPATH = "/html/body/li/article/hgroup/h2/a/@href"
+LINK_SPOT_XPATH = "li/article/hgroup/h2/a/@href"
 def spot_links(html):
 	tree = fromstring(html)
 	return tree.xpath(LINK_SPOT_XPATH)
