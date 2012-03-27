@@ -11,7 +11,7 @@ from collector.models import DataSet
 from collector.models import RawRiver, RawDocument, ExtractedUrl
 from collections import OrderedDict
 
-from django.utils.simplejson import dumps
+from django.utils.simplejson import dumps, loads
 
 
 Agency()
@@ -59,7 +59,7 @@ def call(request, format):
 	try:
 		address = request.GET.get("address")
 		func = request.GET.get("func")
-		params = json.loads(request.GET.get("args"))
+		params = loads(request.GET.get("args"))
 		result = mb.call((func, params), address)
 		return HttpResponse(result.dumps())
 	except Exception: return HttpResponseNotFound()
