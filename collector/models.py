@@ -42,7 +42,7 @@ class DataSet(models.Model):
 
 	@property
 	def random_rivers(self):
-		return self.rawriver_set.all().order_by("-timestamp")[0:3]
+		return self.rawriver_set.order_by("?").values("id")[0:10]
 
 	@property
 	def eurl_sources(self):

@@ -9,17 +9,26 @@
 	padding: 8px;
 }
 
-.fs-section table, .fs-section table * {
+.fs-section table, .fs-section table td, .fs-section table tr, .fs-section table th {
 	-webkit-border-radius: 0 !important;
 	-moz-border-radius: 0 !important;
 	border-radius: 0 !important;
 }
 
 .fs-section-label {
-	background: #DEDEDE;
+	background: #E4E4E4;
 	padding: 2px 8px 2px 8px;
 	border-bottom: 1px solid #DDD;
 	margin-bottom: 8px;
+	text-shadow: 0 1px 1px rgba(255,255,255,0.75);
+	box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3), 0 3px 6px -3px rgba(0,0,0,0.1);
+
+	background-image: linear-gradient(#f2f2f2, #e4e4e4 50%), linear-gradient(#e4e4e4, #ccc);
+	background-image: -o-linear-gradient(#f2f2f2, #e4e4e4 50%), -o-linear-gradient(#e4e4e4, #ccc);
+	background-image: -ms-linear-gradient(#f2f2f2, #e4e4e4 50%), -ms-linear-gradient(#e4e4e4, #ccc);
+	background-image: -moz-linear-gradient(#f2f2f2, #e4e4e4 50%), -moz-linear-gradient(#e4e4e4, #ccc);
+	background-image: -webkit-linear-gradient(#f2f2f2, #e4e4e4 50%), -webkit-linear-gradient(#e4e4e4, #ccc);
+
 }
 
 .fs-stripped {

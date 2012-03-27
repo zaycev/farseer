@@ -32,152 +32,19 @@
 			<div class="row-fluid">
 
 
-				<div class="fs-section">
-					<h3 class="fs-section-label">
-						Raw Rivers
-					</h3>
-
-					<div class="fs-body">
-						<table class="table table-bordered table-condensed">
-							<tbody>
-							<tr>
-								<td class="fs-stripped">Mime types</td>
-								<td style="text-align:center;">
-									{% for mime_type in active.river_mime_types %}
-										<code>
-											{{ mime_type.mime_type }}
-										</code>{% if not forloop.last %}
-										,{% endif %}
-									{% endfor %}
-								</td>
-								<td rowspan="4"
-									style="vertical-align:middle;text-align:center;width:192px;">
-									<span style="font-size:18px;">
-										{{ active.rawriver_set.count }}
-									</span>
-									<img style="margin-top:-6px;" src="/www/icons/newspaper_link.png">
-								</td>
-							</tr>
-							<tr>
-								<td class="fs-stripped">Sources</td>
-								<td style="text-align:center;">
-									{% for source in active.river_sources %}
-										<a href="{{ source.url }}">
-											{{ source.name }}</a>
-										{% if not forloop.last %},{% endif %}
-									{% endfor %}
-								</td>
-							</tr>
-							<tr>
-								<td class="fs-stripped">Collecting Period</td>
-								<td style="text-align:center;">
-									{{ active.collecting_period.since|date:"H:i M d" }}
-									–
-									{{ active.collecting_period.to|date:"H:i M d" }}
-								</td>
-							</tr>
-							<tr>
-								<td class="fs-stripped">Examples (random)</td>
-								<td style="text-align:center;">
-{#									<ul>#}
-										{% for river in active.random_rivers %}
-{#											<li>#}
-												<a id="show-river-{{ river.id }}"
-												   data-toggle="modal"
-												   href="#river-modal-{{ river.id }}"
-												>
-													#{{ forloop.counter }}
-												</a>
-{#											</li>#}
-										{% endfor %}
-{#									</ul>#}
-								</td>
-							</tr>
-							</tbody>
-						</table>
-					</div>
-				</div>
+				{% include "collector/dataset_rivers.html" %}
 
 
 				<br/>
 
 
-				<div class="fs-section">
-					<h3 class="fs-section-label">
-						Extracted Urls
-					</h3>
-
-					<div class="fs-body">
-						<table class="table table-bordered table-condensed">
-							<tbody>
-							<tr>
-								<td class="fs-stripped">Sources</td>
-								<td style="text-align:center;">
-									{% for source in active.eurl_sources %}
-										<a href="{{ source.url }}">
-											{{ source.name }}</a>
-										{% if not forloop.last %},{% endif %}
-									{% endfor %}
-								</td>
-								<td rowspan="2"
-									style="vertical-align:middle;text-align:center;width:192px;">
-									<span style="font-size:17px;">
-										{{ active.extractedurl_set.count }}
-									</span>
-									<img style="margin-top:-6px;" src="/www/icons/link.png">
-								</td>
-							</tr>
-							<tr>
-								<td class="fs-stripped">Already Downloaded:</td>
-								<td style="text-align:center;">
-									{{ active.rawdoc_percentage|floatformat:"2" }}
-									%
-								</td>
-							</tr>
-							</tbody>
-						</table>
-					</div>
-				</div>
+				{% include "collector/dataset_urls.html" %}
 
 
 				<br/>
 
 
-				<div class="fs-section">
-					<h3 class="fs-section-label">
-						Raw Documents
-					</h3>
-
-					<div class="fs-body">
-						<table class="table table-bordered table-condensed">
-							<tbody>
-							<tr>
-								<td class="fs-stripped">Sources</td>
-								<td style="text-align:center;">
-									{% for source in active.doc_sources %}
-										<a href="{{ source.url }}">
-											{{ source.name }}</a>
-										{% if not forloop.last %},{% endif %}
-									{% endfor %}
-								</td>
-								<td rowspan="2"
-									style="vertical-align:middle;text-align:center;width:192px;">
-									<span style="font-size:17px;">
-										{{ active.rawdocument_set.count }}
-									</span>
-									<img style="margin-top:-5px;" src="/www/icons/page_white_text.png">
-								</td>
-							</tr>
-							<tr>
-								<td class="fs-stripped">Already Downloaded:</td>
-								<td style="text-align:center;">
-									0
-								</td>
-							</tr>
-							</tbody>
-						</table>
-					</div>
-				</div>
+				{% include "collector/dataset_rawdocs.html" %}
 
 
 			</div>
@@ -187,49 +54,17 @@
 	</div>
 
 
-	{#Le modals#}
-	{% for river in active.random_rivers %}
-		<div id="river-modal-{{ river.id }}"
-			 class="modal hide fade"
-			 style="display:none;width:940px;left:36%;">
-			<div class="modal-header">
-				<h3>
-					<span>River # {{ river.id }}</span>
-					<a class="close" data-dismiss="modal">×</a>
-				</h3>
-			</div>
-			<div class="modal-body">
-				<pre id="river-body-{{ river.id }}"><code class="html">{{ river.body }}</code></pre>
-			</div>
-			<div class="modal-footer well">
-				<a class="btn btn-primary" href="#" id="close-river-modal-{{ river.id }}">
-					Close
-				</a>
-			</div>
-		</div>
-		<script>
-			$(function () {
-				$("#close-river-modal-{{ river.id }}").click(function() {
-					$("#river-modal-{{ river.id }}").modal("hide");
-				});
-				$("#river-modal-{{ river.id}}").on("show", function() {
-					var code_block = $("#river-body-{{ river.id }}")[0];
-					hljs.highlightBlock(code_block, '\t');
-				});
-			});
-		</script>
-	{% endfor %}
-
 
 {% endblock %}
 
 {% block css %}
 	<link href="/www/css/farseer.css" rel="stylesheet">
-	<link href="/www/css/highlightjs/github.css" rel="stylesheet">
+	<link href="/www/css/highlightjs/idea.css" rel="stylesheet">
 {% endblock %}
 {% block js %}
 	<script src="/www/js/bootstrap-modal.js"></script>
 	<script src="/www/js/bootstrap-transition.js"></script>
 	<script src="/www/js/highlight.js"></script>
 	<script src="/www/js/highlight.pack.js"></script>
+	<script src="/www/js/farseer.js"></script>
 {% endblock %}

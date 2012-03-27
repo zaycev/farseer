@@ -1,0 +1,86 @@
+<div class="fs-section">
+	<h3 class="fs-section-label">
+		Extracted Urls
+	</h3>
+
+	<div class="fs-body">
+		<table class="table table-bordered table-condensed">
+			<tbody>
+			<tr>
+				<td class="fs-stripped">Sources</td>
+				<td style="text-align:center;">
+					{% for source in active.eurl_sources %}
+						<a href="{{ source.url }}">
+							{{ source.name }}</a>
+						{% if not forloop.last %},{% endif %}
+					{% endfor %}
+				</td>
+				<td rowspan="3"
+					style="vertical-align:middle;text-align:center;width:192px;">
+									<span style="font-size:17px;">
+										{{ active.extractedurl_set.count }}
+									</span>
+					<img style="margin-top:-6px;" src="/www/icons/link.png">
+				</td>
+			</tr>
+			<tr>
+				<td class="fs-stripped">Percentage of Downloaded</td>
+				<td style="text-align:center;">
+					{{ active.rawdoc_percentage|floatformat:"2" }}
+					%
+				</td>
+			</tr>
+			<tr>
+				<td class="fs-stripped">See data</td>
+				<td style="text-align:center;">
+					<a class="btn btn-mini" id="get-sample-links">Get random sample</a>
+				</td>
+			</tr>
+			</tbody>
+		</table>
+	</div>
+</div>
+
+<script type="text/javascript">
+	$(function(){
+		$("#get-sample-links").bind("click", function(){
+			$("#links-list-modal").modal("show");
+			$("#links-list-body").html("<ol id='elinks'></ol>");
+			var ol = $('#elinks');
+			Farseer.Collector.list_model("eurl", "{{ active.id }}", 0, 0, function(eurl_list){
+				$(eurl_list).each(function(index, item) {
+					ol.append(
+						$(document.createElement('li')).html("<a href='" + item.url + "'>" + item.url + "</a>")
+					);
+				});
+			});
+
+
+		});
+		$("#close-links-list-modal").bind("click", function(){
+			$("#links-list-modal").modal("hide");
+		});
+	});
+</script>
+
+<div id="links-list-modal"
+	 class="modal hide fade"
+	 style="display:none;width:940px;left:36%;">
+	<div class="modal-header">
+		<h3>
+			<img style="margin-top:-4px;" src="/www/icons/dice.png" alt="">
+			<span>Random links</span>
+			<a class="close" data-dismiss="modal">×</a>
+		</h3>
+	</div>
+	<div class="modal-body"
+		 id="links-list-body">
+		<img src="/www/loader.gif"/>
+	</div>
+	<div class="modal-footer well">
+		<a class="btn btn-primary" href="#"
+		   id="close-links-list-modal">
+			Close
+		</a>
+	</div>
+</div>

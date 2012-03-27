@@ -1,0 +1,104 @@
+<div class="fs-section">
+	<h3 class="fs-section-label">
+		Raw Rivers
+	</h3>
+	<div class="fs-body">
+		<table class="table table-bordered table-condensed">
+			<tbody>
+			<tr>
+				<td class="fs-stripped">Mime types</td>
+				<td style="text-align:center;">
+					{% for mime_type in active.river_mime_types %}
+						<code>
+							{{ mime_type.mime_type }}
+						</code>{% if not forloop.last %}
+						,{% endif %}
+					{% endfor %}
+				</td>
+				<td rowspan="4"
+					style="vertical-align:middle;text-align:center;width:192px;">
+									<span style="font-size:18px;">
+										{{ active.rawriver_set.count }}
+									</span>
+					<img style="margin-top:-6px;"
+						 src="/www/icons/newspaper_link.png">
+				</td>
+			</tr>
+			<tr>
+				<td class="fs-stripped">Sources</td>
+				<td style="text-align:center;">
+					{% for source in active.river_sources %}
+						<a href="{{ source.url }}">
+							{{ source.name }}</a>
+						{% if not forloop.last %},{% endif %}
+					{% endfor %}
+				</td>
+			</tr>
+			<tr>
+				<td class="fs-stripped">Collecting Period</td>
+				<td style="text-align:center;">
+					{{ active.collecting_period.since|date:"H:i M d" }}
+					–
+					{{ active.collecting_period.to|date:"H:i M d" }}
+				</td>
+			</tr>
+			<tr>
+				<td class="fs-stripped">See data (random)</td>
+				<td style="text-align:center;">
+					{% for river in active.random_rivers %}
+						<a id="show-river-{{ river.id }}" style="cursor:pointer;">
+							#{{ forloop.counter }}
+						</a>
+						<script>
+							$(function(){
+								$("#show-river-{{ river.id }}").bind("click", function(){
+									$("#river-modal").modal("show");
+									$("#river-id").html("{{ river.id }}");
+									$("#river-body").html("<img src='/www/loader.gif'/>");
+									Farseer.Collector.get_model("river", "{{ river.id }}", function(data){
+										$("#river-body").html("<pre id='river-pre'><code id='river-code'></code></pre>");
+										var pre_e = $("#river-pre")[0];
+										var code_e = $("#river-code")[0];
+										$(code_e).text(data.body);
+										hljs.highlightBlock(pre_e, '\t');
+									});
+								});
+							});
+						</script>
+					{% endfor %}
+				</td>
+			</tr>
+			</tbody>
+		</table>
+	</div>
+</div>
+
+<script type="text/javascript">
+	$(function(){
+		$("#close-river-modal").click(function(){
+			$("#river-modal").modal("hide");
+		});
+	});
+</script>
+
+<div id="river-modal"
+	 class="modal hide fade"
+	 style="display:none;width:940px;left:36%;">
+	<div class="modal-header">
+		<h3>
+			<img style="margin-top:-4px;" src="/www/icons/dice.png" alt="">
+			<span>River # <span id="river-id"></span></span>
+			<a class="close" data-dismiss="modal">×</a>
+		</h3>
+	</div>
+	<div class="modal-body"
+		 id="river-body">
+		<img src="/www/loader.gif"/>
+	</div>
+	<div class="modal-footer well">
+		<a class="btn btn-primary" href="#"
+		   id="close-river-modal">
+			Close
+		</a>
+	</div>
+</div>
