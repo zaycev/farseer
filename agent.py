@@ -296,7 +296,7 @@ class Agency(AbsAgent):
 	def __init__(self):
 		self.agent_addresses = None
 		self.call_back_address = gen_key()
-		super(Agency, self).__init__(Agency.agency_address, latency=self.Latency.MEDIUM)
+		super(Agency, self).__init__(Agency.agency_address, latency=self.Latency.EXTRA_LOW)
 		pool = connection_pool()
 		conn = redis.Redis(connection_pool=pool)
 		resp = conn.get(self.call_back_address)

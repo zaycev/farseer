@@ -6,28 +6,37 @@ from time import strftime
 import datetime
 
 
-BUNDLE_KEY = "F.INV"
-BUNDLE_NAME = "Forbes Blogs / Investing"
+BUNDLE_KEY = "FORB.B"
+BUNDLE_NAME = "Forbes Blogs / All"
 
 
 def get_or_create_source():
 	source, created = DocumentSource.objects.get_or_create(
 		name = BUNDLE_NAME,
 		key = BUNDLE_KEY,
-		url = "http://www.forbes.com/investing/",
+		url = "http://www.forbes.com/",
 	)
 	if not created:source.save()
 	return source
 
 
+SITE_SECTIONS = (
+	"business",
+	"investing",
+	"technology",
+	"entrepreneurs",
+	"leadership",
+	"lifestyle",
+	"lists",
+)
 PROBE_HOURS = ("00:00:01", "04:00:00",
 			   "08:00:00", "12:00:00",
 			   "16:00:00", "20:00:00",
 			   "23:00:00")
-REQUEST_URL_PAT =  "http://www.forbes.com/investing/more?" \
+REQUEST_URL_PAT =  "http://www.forbes.com/%s/more?" \
 				   "publishdate=%s %s&offset=0&limit="
-def rivers_count(start, length):
-	return length * len(PROBE_HOURS)
+def rivers_count(_, length):
+	return length * len(PROBE_HOURS) * len(SITE_SECTIONS)
 def __daterange__(start_date, end_date):
 	for n in range((end_date - start_date).days):
 		yield start_date + timedelta(n)
@@ -36,8 +45,9 @@ def make_river_link_iterator(start, length):
 	end_date = start_date - timedelta(length)
 	for date in __daterange__(end_date, start_date):
 		for probe_time in PROBE_HOURS:
-			probe_date = strftime("%m/%d/%Y", date.timetuple())
-			yield REQUEST_URL_PAT % (probe_date, probe_time)
+			for section in SITE_SECTIONS:
+				probe_date = strftime("%m/%d/%Y", date.timetuple())
+				yield REQUEST_URL_PAT % (section, probe_date, probe_time)
 
 
 LINK_SPOT_XPATH = "li/article/hgroup/h2/a/@href"

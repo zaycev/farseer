@@ -19,28 +19,54 @@ class DocumentSource(models.Model):
 class DataSet(models.Model):
 	name = models.CharField(max_length=48, null=False, blank=False,
 		db_index=True, unique=True)
-	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False)
+	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False,
+		db_index=True)
 	summory = models.CharField(max_length=4096, null=True, blank=True)
-	sources = models.ManyToManyField(DocumentSource)
 
 	def __unicode__(self):
 		return u"<Dataset('#%s', '%s')>" % (self.id, self.name)
 
 	@property
-	def mime_types(self):
+	def river_mime_types(self):
 		for m in self.rawriver_set.values("mime_type").distinct():
 			m["count"] = RawRiver.objects\
-						.filter(mime_type=m["mime_type"]).count()
+						.filter(dataset=self, mime_type=m["mime_type"]).count()
 			yield m
 
 	@property
-	def counted_sources(self):
-		for source in self.sources.all():
-			yield {
-				"source": source,
-				"rawrivers": RawRiver.objects\
-							.filter(dataset=self, source=source).count(),
-			}
+	def river_sources(self):
+		sources = RawRiver.objects.filter(dataset=self)\
+			.values("source").distinct()
+		for s in sources:
+			yield DocumentSource.objects.get(id=s["source"])
+
+	@property
+	def random_rivers(self):
+		return self.rawriver_set.all().order_by("-timestamp")[0:3]
+
+	@property
+	def eurl_sources(self):
+		sources = ExtractedUrl.objects.filter(dataset=self)\
+		.values("source").distinct()
+		for s in sources:
+			yield DocumentSource.objects.get(id=s["source"])
+
+
+	@property
+	def rawdoc_percentage(self):
+		urlsc = self.extractedurl_set.count()
+		if urlsc:
+			return float(self.rawdocument_set.count())\
+					/ urlsc * 100
+		return "?"
+
+
+	@property
+	def rawdoc_mime_types(self):
+		for m in self.rawdocument_set.values("mime_type").distinct():
+			m["count"] = RawRiver.objects\
+			.filter(dataset=self, mime_type=m["mime_type"]).count()
+			yield m
 
 	@property
 	def collecting_period(self):
@@ -62,13 +88,17 @@ class RawRiver(models.Model):
 		null=False)
 	dataset = models.ForeignKey(DataSet, rel_class=models.ManyToOneRel,
 		null=False, db_index=True)
-	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False)
+	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False,
+		db_index=True)
 	body = models.TextField(null=False, blank=False)
 	mime_type = models.CharField(max_length=32, null=False, blank=False)
 
 	def __unicode__(self):
 		return u"<RawRiver('#%s', '%s', '%s')>" % (self.id, self.url,
 												   self.timestamp)
+
+#	class Meta:
+#		ordering = (,)
 
 
 class ExtractedUrl(models.Model):
@@ -90,7 +120,8 @@ class RawDocument(models.Model):
 		verify_exists=False, db_index=True)
 	dataset = models.ForeignKey(DataSet, rel_class=models.ManyToOneRel,
 		null=False, db_index=True)
-	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False)
+	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False,
+		db_index=True)
 	body = models.TextField(null=False, blank=False)
 	mime_type = models.CharField(max_length=32, null=False, blank=False,
 		default="text/html")

@@ -1,0 +1,28 @@
+.fs-section {
+	border: 1px solid #DDD;
+	box-shadow: 0 2px 7px #DADADA;
+	-moz-box-shadow: 0 2px 7px #DADADA;
+	-webkit-box-shadow: 0 2px 7px #DADADA;
+}
+
+.fs-section .fs-body {
+	padding: 8px;
+}
+
+.fs-section table, .fs-section table * {
+	-webkit-border-radius: 0 !important;
+	-moz-border-radius: 0 !important;
+	border-radius: 0 !important;
+}
+
+.fs-section-label {
+	background: #DEDEDE;
+	padding: 2px 8px 2px 8px;
+	border-bottom: 1px solid #DDD;
+	margin-bottom: 8px;
+}
+
+.fs-stripped {
+	background: #F1F2F3;
+	width: 192px;
+}

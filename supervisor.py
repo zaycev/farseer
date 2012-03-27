@@ -89,7 +89,7 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 		self.complete_tasks = None
 		self.sent_tasks = None
 		self.error_log = None
-		super(AbsSupervisor, self).__init__(address)
+		super(AbsSupervisor, self).__init__(address, latency=self.Latency.EXTRA_LOW)
 
 	def __init_agent__(self):
 		super(AbsSupervisor, self).__init_agent__()

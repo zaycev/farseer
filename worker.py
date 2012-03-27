@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 import traceback
 from django.core import serializers
+from django.db import transaction
 from collections import deque
-from agent import AbsAgent, Message
-from abc import ABCMeta
 from abc import abstractmethod
-import urllib
+from abc import ABCMeta
+from agent import AbsAgent, Message
+
 import logging
+import urllib
+
 
 class WorkerIOHelper(object):
 	__metaclass__ = ABCMeta
@@ -26,13 +29,16 @@ class WorkerIOHelper(object):
 	def save_output(self, worker_output_json):
 		worker_output = self.deserialize(worker_output_json)
 		for record in worker_output:
-			record.save()
-#			try:
-#				record.save()
-#				logging.debug(u"%s: saved %s"
-#					% (self.__class__.__name__, record.__unicode__())
-#				)
-#			except Exception: pass
+			try:
+				sid = transaction.savepoint()
+				record.save()
+				logging.debug(u"%s: saved %s"
+					% (self.__class__.__name__, record.__unicode__())
+				)
+				transaction.savepoint_commit(sid)
+			except Exception:
+				transaction.savepoint_rollback(sid)
+				print traceback.format_exc()
 
 	def deserialize(self, json):
 		return serializers.deserialize("json", json)
@@ -61,7 +67,7 @@ class Worker(AbsAgent):
 		self.params = params
 		self.worker = None
 		self.serializer = None
-		super(Worker, self).__init__(address)
+		super(Worker, self).__init__(address, latency=self.Latency.LOW)
 
 	def __init_agent__(self):
 		super(Worker, self).__init_agent__()
