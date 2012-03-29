@@ -119,7 +119,7 @@ class PageFetcherAgent(Worker):
 		self.fetcher = TextFetcher()
 
 	def do_work(self, eurl):
-		url = eurl["ur"]
+		url = eurl["url"]
 		body = self.fetcher.fetch_text(url)
 		raw_doc = RawDocument(
 			url = url,
