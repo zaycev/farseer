@@ -13,12 +13,12 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'ENGINE': db["web"]["driver"],
-        'NAME': db["web"]["database"],
-        'USER': db["web"]["user"],
-        'PASSWORD': db["web"]["password"],
-        'HOST': db["web"]["host"],
-        'PORT': db["web"]["port"],
+        'ENGINE': db["pg"]["driver"],
+        'NAME': db["pg"]["database"],
+        'USER': db["pg"]["user"],
+        'PASSWORD': db["pg"]["password"],
+        'HOST': db["pg"]["host"],
+        'PORT': db["pg"]["port"],
 #		'OPTIONS': {
 #			'autocommit': True,
 #			}
@@ -95,7 +95,6 @@ INSTALLED_APPS = (
 	'django.contrib.sites',
 	'django.contrib.messages',
 	'django.contrib.staticfiles',
-#	'web',
 	"collector",
 )
 
