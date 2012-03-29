@@ -141,7 +141,7 @@ class RawDocumentIOHelper(WorkerIOHelper):
 			.get(name=params["specific"]["input_dataset"])
 		e_urls = input_dataset.unfetched_rawdocs
 		self.e_urls_count = e_urls.count()
-		self.task_iter = e_urls.values("url").all().__iter__()
+		self.task_iter = list(e_urls.values("url").all().__iter__()).__iter__()
 
 	@property
 	def total_tasks(self):
