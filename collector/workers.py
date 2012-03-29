@@ -118,10 +118,10 @@ class PageFetcherAgent(Worker):
 		if not created: self.output_dataset.save()
 		self.fetcher = TextFetcher()
 
-	def do_work(self, extracted_url):
-		body = self.fetcher.fetch_text(extracted_url.url)
+	def do_work(self, url):
+		body = self.fetcher.fetch_text(url)
 		raw_doc = RawDocument(
-			url = extracted_url.url,
+			url = url,
 			dataset = self.output_dataset,
 			body = body,
 		)
@@ -136,11 +136,11 @@ class RawDocumentIOHelper(WorkerIOHelper):
 
 	def __init__(self, params):
 		super(RawDocumentIOHelper, self).__init__(params)
-		self.input_dataset = DataSet.objects\
+		input_dataset = DataSet.objects\
 			.get(name=params["specific"]["input_dataset"])
-		self.e_urls = self.input_dataset.unfetched_rawdocs
-		self.e_urls_count = self.e_urls.count()
-		self.task_iter = self.e_urls.iterator()
+		e_urls = self.input_dataset.unfetched_rawdocs
+		self.e_urls_count = e_urls.count()
+		self.task_iter = e_urls.values("url").all()
 
 	@property
 	def total_tasks(self):
