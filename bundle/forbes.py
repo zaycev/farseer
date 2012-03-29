@@ -4,9 +4,10 @@ from lxml.html import fromstring
 from datetime import timedelta
 from time import strftime
 import datetime
+import re
 
 
-BUNDLE_KEY = "FORB.B"
+BUNDLE_KEY = "FORBES"
 BUNDLE_NAME = "Forbes Blogs / All"
 
 
@@ -53,4 +54,19 @@ def make_river_link_iterator(start, length):
 LINK_SPOT_XPATH = "li/article/hgroup/h2/a/@href"
 def spot_links(html):
 	tree = fromstring(html)
-	return tree.xpath(LINK_SPOT_XPATH)
+	return set(tree.xpath(LINK_SPOT_XPATH))
+
+TITLE_XPATH = "/html/head/title/text()"
+TITLE_RE = re.compile("(.+)\s+- Forbes.*")
+import traceback
+def extract_essential(rawdoc):
+	tree = fromstring(rawdoc.body)
+	try:
+		title = re.findall(TITLE_RE, tree.xpath(TITLE_XPATH)[0])[0]
+	except Exception:
+		print traceback.format_exc()
+		title = None
+	return {
+		"title": title,
+
+	}

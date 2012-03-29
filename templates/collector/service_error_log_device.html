@@ -1,21 +1,24 @@
-{% if active.common.error_log %}
-	<div class="row-fluid">
-
-
-		<legend>
-			Error Log:
-		</legend>
-		<div class="span10">
-							<pre class="pre-scrollable prettyprint linenums" style="padding-left:16px;">{% for timestamp, text in active.common.error_log %}
-{{ timestamp|date:"Y.m.d H:i:s" }}
-{{ text }}{% endfor %}</pre>
-		</div>
-
-		<script>
-			$(function(){
-				prettyPrint();
-			});
-		</script>
-
+<div class="fs-section">
+	<h3 class="fs-section-label">
+		Error Log ({{ active.common.errors_occurred }})
+		<button id="clear-log" class="btn btn-mini" style="float:right;margin-top:2px;height:24px;">
+			<i class="icon-trash"></i>
+		</button>
+	</h3>
+	<div class="fs-body">
+		<pre class="pre-scrollable" id="error-log"><code class="python">{{ active.common.error_log }}</code></pre>
 	</div>
-{% endif %}
+</div>
+<script type="text/javascript">
+	$(function(){
+		var code = $("#error-log")[0];
+		hljs.highlightBlock(code, '\t');
+		var make_args = function(){
+			return [];
+		};
+		var reload_log = Farseer.Collector.call("{{ active.common.address }}", "__clear_log__", make_args);
+		$("#clear-log").bind("click", function(){
+			reload_log();
+		});
+	});
+</script>

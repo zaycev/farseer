@@ -24,3 +24,4 @@
 *.settings
 *.tmproj
 *.idea
+bundle/test

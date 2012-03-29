@@ -24,6 +24,7 @@ Farseer.Collector.call = function(address, func, make_args, callback) {
 				setTimeout(function(){
 					_this.attr("disabled", false);
 					_this.html(_html);
+					if (callback) callback(data);
 				}, 300);
 			},
 			error: function(data){
@@ -32,6 +33,7 @@ Farseer.Collector.call = function(address, func, make_args, callback) {
 				setTimeout(function(){
 					_this.attr("disabled", false);
 					_this.html(_html);
+					if (callback) callback(data);
 				}, 300);
 
 			}
@@ -53,14 +55,15 @@ Farseer.Collector.get_model = function(model_name, instance_id, callback) {
 	});
 };
 
-Farseer.Collector.get_model = function(model_name, instance_id, callback) {
+Farseer.Collector.get_model = function(model_name, instance_id, dataset_id, callback) {
 	$.ajax({
 		method:"GET",
 		url:"/apps/collector/api/v0/model/get.json",
 		dataType:"json",
 		data:{
 			model: model_name,
-			id: instance_id
+			id: instance_id,
+			dataset: dataset_id
 		},
 		success: callback
 	});

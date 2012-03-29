@@ -14,8 +14,6 @@ except ImportError:
 	sys.exit(1)
 
 import time
-import threading
-import multiprocessing
 
 from agent import Message
 from agent import MailBox
@@ -92,8 +90,7 @@ class AgentTracerTest(unittest.TestCase):
 		mb.destroy()
 
 	def test_tcall(self):
-		ags = [AgentTracer("agent#%s" % x, threading.Thread,
-			latency=AgentTracer.Latency.EXTRA_LOW)
+		ags = [AgentTracer("agent#%s" % x)
 			   for x in xrange(0, 16)]
 		m = MailBox("agency mailbox")
 		numbers = (1,2,3,1)
@@ -105,8 +102,7 @@ class AgentTracerTest(unittest.TestCase):
 		m.destroy()
 
 	def test_pcall(self):
-		ags = [AgentTracer("agent#%s" % x, multiprocessing.Process,
-			latency=AgentTracer.Latency.EXTRA_LOW)
+		ags = [AgentTracer("agent#%s" % x)
 			   for x in xrange(0, 16)]
 		m = MailBox("agency mailbox")
 		numbers = (1,2,3,1)
@@ -139,6 +135,7 @@ class AgencyTest(unittest.TestCase):
 
 
 from collector.test import *
+from bundle.test import *
 
 if __name__ == "__main__":
 	setup_environment()

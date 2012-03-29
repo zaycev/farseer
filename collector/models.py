@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from django.db import models
 from django.db.models import Min, Max
 
@@ -41,15 +42,8 @@ class DataSet(models.Model):
 			yield DocumentSource.objects.get(id=s["source"])
 
 	@property
-	def random_rivers(self):
-		return self.rawriver_set.order_by("?").values("id")[0:10]
-
-	@property
-	def eurl_sources(self):
-		sources = ExtractedUrl.objects.filter(dataset=self)\
-		.values("source").distinct()
-		for s in sources:
-			yield DocumentSource.objects.get(id=s["source"])
+	def random_river(self):
+		return self.rawriver_set.order_by("?").values("id")[0]
 
 
 	@property
@@ -76,6 +70,16 @@ class DataSet(models.Model):
 			"since": min_date["timestamp__min"],
 			"to": max_date["timestamp__max"],
 		}
+
+	@property
+	def unfetched_rawdocs(self):
+		return ExtractedUrl.objects.extra(
+			where=["dataset_id = %s AND url NOT IN "
+				   "(SELECT url FROM collector_rawdocument "
+				   "WHERE dataset_id=%s)"],
+			params=[self.id, self.id],
+		)
+
 
 	class Meta:
 		ordering = ("name",)
@@ -133,20 +137,20 @@ class RawDocument(models.Model):
 	class Meta:
 		unique_together = ("url", "dataset",)
 
-		#class Author(models.Model):
-#	name = models.CharField(max_length=128, null=False, blank=False)
-#	url = models.URLField(max_length=256, null=False, blank=False, unique=True,
-#		verify_exists=False, db_index=True)
-#
-#	def __unicode__(self):
-#		return u"<Author('#%s', '%s')>" % (self.id, self.name)
-#
-#
+class Author(models.Model):
+	name = models.CharField(max_length=128, null=False, blank=False)
+	url = models.URLField(max_length=256, null=False, blank=False, unique=True,
+		verify_exists=False, db_index=True)
+
+	def __unicode__(self):
+		return u"<Author('#%s', '%s')>" % (self.id, self.name)
+
+
 #class Document(models.Model):
 #	url = models.ForeignKey(ExtractedUrl, to_field="url", max_length=256,
 #		db_index=True, null=False, blank=False)
-#	source = models.ForeignKey(DocumentSource, rel_class=models.ManyToOneRel,
-#		null=False)
+#	dataset = models.ForeignKey(DataSet, rel_class=models.ManyToOneRel,
+#		null=False, db_index=True)
 #	title = models.CharField(max_length=320, null=False, blank=False)
 #	summary = models.CharField(max_length=4096, null=False, blank=True)
 #	content = models.TextField(blank=False, null=False)
@@ -158,8 +162,8 @@ class RawDocument(models.Model):
 #
 #	def __unicode__(self):
 #		return u"<Document('#%s', '%s')>" % (self.id, self.title)
-#
-#
+
+
 #class ProbeSource(models.Model):
 #	name = models.CharField(max_length=128, null=False, blank=False)
 #	symbol = models.CharField(max_length=16, null=False, blank=False,

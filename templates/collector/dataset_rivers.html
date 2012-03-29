@@ -43,29 +43,9 @@
 				</td>
 			</tr>
 			<tr>
-				<td class="fs-stripped">See data (random)</td>
+				<td class="fs-stripped">See data</td>
 				<td style="text-align:center;">
-					{% for river in active.random_rivers %}
-						<a id="show-river-{{ river.id }}" style="cursor:pointer;">
-							#{{ forloop.counter }}
-						</a>
-						<script>
-							$(function(){
-								$("#show-river-{{ river.id }}").bind("click", function(){
-									$("#river-modal").modal("show");
-									$("#river-id").html("{{ river.id }}");
-									$("#river-body").html("<img src='/www/loader.gif'/>");
-									Farseer.Collector.get_model("river", "{{ river.id }}", function(data){
-										$("#river-body").html("<pre id='river-pre'><code id='river-code'></code></pre>");
-										var pre_e = $("#river-pre")[0];
-										var code_e = $("#river-code")[0];
-										$(code_e).text(data.body);
-										hljs.highlightBlock(pre_e, '\t');
-									});
-								});
-							});
-						</script>
-					{% endfor %}
+					<button class="btn btn-mini" id="get-random-river">Get random example</button>
 				</td>
 			</tr>
 			</tbody>
@@ -75,8 +55,30 @@
 
 <script type="text/javascript">
 	$(function(){
+		$("#get-random-river").bind("click", function(){
+			$("#river-modal").modal("show");
+			$("#river-body").html("<img src='/www/loader.gif'/>");
+			Farseer.Collector.get_model("river", "@", {{ active.id }}, function(data){
+				$("#river-body").html("<pre id='river-pre'><code id='river-code'></code></pre>");
+				var pre_e = $("#river-pre")[0];
+				var code_e = $("#river-code")[0];
+				$("#river-id").attr("value", data.id);
+				$(code_e).text(data.body);
+				hljs.highlightBlock(pre_e, '\t');
+			});
+		});
 		$("#close-river-modal").click(function(){
 			$("#river-modal").modal("hide");
+		});
+		$("#reload-river-modal").bind("click", function(){
+			$("#river-body").html("<pre id='river-pre'><code id='river-code'></code></pre>");
+			var pre_e = $("#river-pre")[0];
+			var code_e = $("#river-code")[0];
+			Farseer.Collector.get_model("river", $("#river-id").val(), {{ active.id }}, function(data){
+				$("#river-id").attr("value", data.id);
+				$(code_e).text(data.body);
+				hljs.highlightBlock(pre_e, '\t');
+			});
 		});
 	});
 </script>
@@ -87,7 +89,18 @@
 	<div class="modal-header">
 		<h3>
 			<img style="margin-top:-4px;" src="/www/icons/dice.png" alt="">
-			<span>River # <span id="river-id"></span></span>
+			Raw River
+
+			<div style="display:inline-block;margin-left:32px;" class="form-horizontal">
+				<div class="input-prepend input-append">
+					<input id="river-id"/>
+					<a class="btn add-on" id="reload-river-modal" style="cursor:pointer;">
+						<i class="icon-refresh"></i>
+					</a>
+				</div>
+			</div>
+
+
 			<a class="close" data-dismiss="modal">×</a>
 		</h3>
 	</div>

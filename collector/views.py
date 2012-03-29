@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+
+from django.db.models import Model
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseNotFound
 from django.shortcuts import redirect
 from django.shortcuts import render_to_response
 from bundle import get_bundles
-from agent import Agency, MailBox
+from agent import Agency, MailBox, Timeout
 from collector.superv import RiverFetcher
 from collector.superv import LinkSpotter
 from collector.superv import PageFetcher
@@ -15,7 +17,7 @@ from django.utils.simplejson import dumps, loads
 
 
 Agency()
-mb = MailBox("@morbo")
+mb = MailBox("@morbo",latency=Timeout.Latency.EXTRA_LOW)
 supervisors = [
 	RiverFetcher(Agency.alloc_address(mb)),
 	LinkSpotter(Agency.alloc_address(mb)),
@@ -53,7 +55,8 @@ def show_dataset(request, dataset_id):
 	})
 
 
-def call(request, format):
+def service_call(request, format):
+	print "ok, call"
 	if format not in ("xml", "json",):
 		return HttpResponseForbidden()
 	try:
@@ -65,25 +68,36 @@ def call(request, format):
 	except Exception: return HttpResponseNotFound()
 
 
+def _get_instance(model, id, dataset_id=None):
+	if not issubclass(model, Model):
+		raise TypeError("model should be inherited from django.db.models.Model")
+	if id == "@":
+		ds = DataSet.objects.get(id=dataset_id)
+		return model.objects.filter(dataset=ds).order_by("?")[0]
+	else:
+		return model.objects.get(id=id)
+
+
 def model_get(request, format):
 	model = request.GET.get("model")
-	if model not in ("river", "document", "probe"):
+	if model not in ("river", "rawdoc", "probe"):
 		return HttpResponseForbidden("model %s doesn't exist" % model)
 	try:
 		id = request.GET.get("id", -1)
+		dataset_id = request.GET.get("dataset")
 		if model == "river":
-			river = RawRiver.objects.get(id=id)
+			river = _get_instance(RawRiver, id, dataset_id)
 			obj = {"id": river.id, "body": river.body}
-		elif model == "document":
-			doc = RawDocument.objects.get(id=id)
-			obj = {"id": doc.id, "body": doc.body}
+		elif model == "rawdoc":
+			doc = _get_instance(RawDocument, id, dataset_id)
+			obj = {"id": doc.id, "body": doc.body, "url": doc.url,}
 		else:
 			return HttpResponseNotFound("model %s doesn't exist" % model)
 		if format == "json": return HttpResponse(dumps(obj), content_type="application/json")
 		return HttpResponseForbidden("internal error")
 	except Exception:
 		import traceback
-		print traceback.format_exc()
+		print  traceback.format_exc()
 		return HttpResponseNotFound("object %s not found" % model)
 
 
@@ -96,7 +110,7 @@ def model_list(request, format):
 		ds = DataSet.objects.get(id=dataset_id)
 		if model == "eurl":
 			objs = ExtractedUrl.objects.filter(dataset=ds)\
-				.order_by("?").values("id","url")[0:32]
+				.order_by("?").values("id","url")[0:100]
 		else:
 			return HttpResponseNotFound("model %s doesn't exist" % model)
 		if format == "json": return HttpResponse(dumps(list(objs)), content_type="application/json")

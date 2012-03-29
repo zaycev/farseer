@@ -15,6 +15,7 @@ from options import DATABASE_CONFIG
 from abc import ABCMeta
 from abc import abstractmethod
 
+
 ALPHABET = "abcdefghijklmnopqrstuvwxyz"\
 		   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"\
 		   "0123456789"
@@ -32,6 +33,61 @@ def connection_pool():
 		host=DATABASE_CONFIG["redis"].get("host", "127.0.0.1"),
 	)
 
+
+class Timeout(object):
+
+	class Latency:
+		EXTRA_LOW = 0
+		LOW = 1
+		MEDIUM = 2
+		HIGH = 3
+		EXTRA_HIGH = 4
+
+	def __init__(self, initial=0.050, max=0.200, k=1.050, max_iter=None):
+		self.initial = initial
+		self.max = max
+		self.k = k
+		self.max_iter = max_iter
+		self.current = None
+		self.current_i = None
+
+	def reset(self):
+		self.current = self.initial
+		self.current_i = 0
+
+	def set_latency(self, latency):
+		if latency is self.Latency.EXTRA_LOW:
+			self.initial = 0.015
+			self.max = 0.120
+			self.k = 1.030
+		elif latency is self.Latency.LOW:
+			self.initial = 0.050
+			self.max = 0.200
+			self.k = 1.050
+		elif latency is self.Latency.MEDIUM:
+			self.initial = 0.100
+			self.max = 0.500
+			self.k = 1.020
+		elif latency is self.Latency.HIGH:
+			self.initial = 0.200
+			self.max = .800
+			self.k = 1.030
+		elif latency is self.Latency.EXTRA_HIGH:
+			self.initial = 0.200
+			self.max = 3.000
+			self.k = 1.050
+
+	def __iter__(self):
+		self.reset()
+		while self.current_i < self.max_iter or not self.max_iter:
+			yield self.current
+			if self.current < self.max:
+				self.current *= self.k
+			self.current_i += 1
+		raise StopIteration()
+
+class MailBoxException(Exception):
+	pass
 
 class Message(object):
 	REGULAR = 0
@@ -81,15 +137,14 @@ class Message(object):
 
 
 class MailBox(object):
-	def __init__(self, address):
+	def __init__(self, address, latency=Timeout.Latency.MEDIUM):
 		self.lock = threading.RLock()
 		with self.lock:
-			self.sleep_min = 0.005
-			self.sleep_max = 0.050
-			self.sleep_koe = 1.030
 			self.address = str(address)
 			self.pool = connection_pool()
 			self.conn = redis.Redis(connection_pool=self.pool)
+			self.tm = Timeout(max_iter=1024)
+			self.tm.set_latency(latency)
 
 	def flush(self):
 		with  self.lock:
@@ -133,20 +188,19 @@ class MailBox(object):
 		message = Message(call_address, to_address, call_body,
 			extra=Message.CALL)
 		packed = message.dumps()
+		response = None
 		with self.lock:
 			self.conn.lpush(to_address, packed)
-		with self.lock:
-			response = self.conn.rpop(call_address)
-		sleep = self.sleep_min
-		while not response:
-			time.sleep(sleep)
+		for t in self.tm:
 			with self.lock:
 				response = self.conn.rpop(call_address)
-			if sleep < self.sleep_max:
-				sleep *= self.sleep_koe
+			if response: break
+			time.sleep(t)
 		with self.lock:
 			self.conn.delete(call_address)
-		return Message.loads(response)
+		if response:
+			return Message.loads(response)
+		raise MailBoxException("Timeout %s exceeded" % self.address)
 
 	def destroy(self):
 		with self.lock:
@@ -157,20 +211,8 @@ class AbsAgent(object):
 	__metaclass__ = ABCMeta
 	process = True
 
-	class Latency(object):
-		EXTRA_LOW = 0
-		LOW = 1
-		MEDIUM = 2
-		HIGH = 3
-		EXTRA_HIGH = 4
-
-	def __init__(self, address,latency=Latency.MEDIUM):
+	def __init__(self, address,latency=Timeout.Latency.MEDIUM):
 		self.__address = address
-		self.mailbox = None
-		self.recv_timeout = 1
-		self.sleep_min = None
-		self.sleep_max = None
-		self.sleep_koe = None
 		self.latency = latency
 		if self.process:
 			self.unit = multiprocessing\
@@ -178,8 +220,13 @@ class AbsAgent(object):
 		else:
 			self.unit = threading\
 				.Thread(target=self.__message_loop__, args=(self,))
-		self.unit.daemon = True
+		#self.unit.daemon = True
 		self.unit.start()
+
+	def __init_agent__(self):
+		self.mailbox = MailBox(self.address, self.latency)
+		self.tm = Timeout()
+		self.tm.set_latency(self.latency)
 
 	@property
 	def address(self):
@@ -188,11 +235,9 @@ class AbsAgent(object):
 	@staticmethod
 	def __message_loop__(agent):
 		agent.__init_agent__()
-		sleep = agent.sleep_min
-		while True:
+		for t in agent.tm:
 			message = agent.mailbox.pop_message()
 			if message:
-				sleep = agent.sleep_min
 				if message.extra == message.CALL\
 				or message.extra == message.CAST:
 					func = getattr(agent, message.body[0])
@@ -212,10 +257,9 @@ class AbsAgent(object):
 					agent.mailbox.send("pong", message.sent_from)
 				else:
 					agent.__handle_message__(message)
+				agent.tm.reset()
 			else:
-				time.sleep(sleep)
-				if sleep < agent.sleep_max:
-					sleep *= agent.sleep_koe
+				time.sleep(t)
 			agent.do_periodic_things()
 
 	def do_periodic_things(self):
@@ -239,32 +283,6 @@ class AbsAgent(object):
 	def cast(self, func_name, args, send_from_mb):
 		message = (func_name, args)
 		self.send(message, send_from_mb, Message.CAST)
-
-	def __init_agent__(self):
-		self.mailbox = MailBox(self.address)
-		if self.latency is self.Latency.EXTRA_LOW:
-			self.sleep_min = 0.005
-			self.sleep_max = 0.050
-			self.sleep_koe = 1.030
-		elif self.latency is self.Latency.LOW:
-			self.sleep_min = 0.010
-			self.sleep_max = 0.100
-			self.sleep_koe = 1.050
-		elif self.latency is self.Latency.MEDIUM:
-			self.sleep_min = 0.050
-			self.sleep_max = 0.500
-			self.sleep_koe = 1.020
-		elif self.latency is self.Latency.HIGH:
-			self.sleep_min = 0.100
-			self.sleep_max = 1.000
-			self.sleep_koe = 1.030
-		elif self.latency is self.Latency.EXTRA_HIGH:
-			self.sleep_min = 0.100
-			self.sleep_max = 3.000
-			self.sleep_koe = 1.050
-		self.mailbox.sleep_min = self.sleep_min
-		self.mailbox.sleep_max = self.sleep_max
-		self.mailbox.sleep_koe = self.sleep_koe
 
 	def terminate(self):
 		self.mailbox.destroy()
@@ -296,7 +314,7 @@ class Agency(AbsAgent):
 	def __init__(self):
 		self.agent_addresses = None
 		self.call_back_address = gen_key()
-		super(Agency, self).__init__(Agency.agency_address, latency=self.Latency.EXTRA_LOW)
+		super(Agency, self).__init__(Agency.agency_address, latency=Timeout.Latency.EXTRA_LOW)
 		pool = connection_pool()
 		conn = redis.Redis(connection_pool=pool)
 		resp = conn.get(self.call_back_address)
@@ -316,13 +334,16 @@ class Agency(AbsAgent):
 			self.mailbox.conn.flushdb()
 		self.mailbox.conn.set(self.call_back_address, "SUCCESS")
 		self.agent_addresses = set()
+		self.counter = 100
 
 	def _alloc_address(self):
-		new_address = gen_key()
-		while new_address in self.agent_addresses:
-			new_address = gen_key()
+		new_address = self.counter
+		self.counter += 1
+		#new_address = gen_key()
+		#while new_address in self.agent_addresses:
+#			new_address = gen_key()
 		self.agent_addresses.add(new_address)
-		return new_address
+		return str(self.counter)
 
 	def _free_address(self, address):
 		self.agent_addresses.discard(address)

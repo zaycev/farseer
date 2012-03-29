@@ -5,7 +5,7 @@
 		<div class="well" style="height:32px;">
 			<div class="form-inline">
 				<div class="input-append">
-					<legend>
+					<span style="font-size:24px;">
 						Worker pool size:
 						<input id="value-real-pool-size"
 							   class="span1"
@@ -13,14 +13,13 @@
 							   name="pool_size"
 							   maxlength="4"
 							   value="{{ active.common.pool_size }}">
-						<button style="width:64px;margin-left:-10px;"
-								id="button-change-pool-size"
-								class="btn"
-								type="button">
-							Change
-						</button>
-					</legend>
-
+					</span>
+					<button style="width:64px;margin-left:-8px;"
+							id="button-change-pool-size"
+							class="btn"
+							type="button">
+						Change
+					</button>
 					<script>
 						$(function () {
 							var btn = "#button-change-pool-size";
@@ -49,11 +48,13 @@
 			</div>
 		</div>
 		<script>
-			var address = "{{ active.common.address }}";
-			var make_args = function () {return [];};
-			$("#button-run").bind("click", Farseer.Collector.call(address, "__run_session__", make_args));
-			$("#button-stop").bind("click", Farseer.Collector.call(address, "__stop_session__", make_args));
-			$("#button-kill").bind("click", Farseer.Collector.call(address, "__stop__", make_args));
+			$(function(){
+				var address = "{{ active.common.address }}";
+				var make_args = function () {return [];};
+				$("#button-run").bind("click", Farseer.Collector.call(address, "__run_session__", make_args));
+				$("#button-stop").bind("click", Farseer.Collector.call(address, "__stop_session__", make_args));
+				$("#button-kill").bind("click", Farseer.Collector.call(address, "__stop__", make_args));
+			});
 		</script>
 
 	</div>

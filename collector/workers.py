@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import django.db
-
 import bundle
 
 from worker import Worker
@@ -22,9 +20,8 @@ class RawRiverIOHelper(WorkerIOHelper):
 	def __init__(self, params):
 		start_page = int(params["specific"]["start_page"])
 		pages_count = int(params["specific"]["pages_count"])
-		django.db.close_connection()
 		super(RawRiverIOHelper, self).__init__(params)
-		self.bundle = bundle.get_bundle(params["specific"]["bundle_key"])
+		self.bundle = bundle.get(params["specific"]["bundle_key"])
 		self.pages_count = self.bundle.rivers_count(start_page, pages_count)
 		self.task_iter =\
 			self.bundle.make_river_link_iterator(start_page, pages_count)
@@ -36,7 +33,7 @@ class RawRiverIOHelper(WorkerIOHelper):
 class RiverFetcherAgent(Worker):
 
 	def __init_worker__(self, params):
-		self.bundle = bundle.get_bundle(params["specific"]["bundle_key"])
+		self.bundle = bundle.get(params["specific"]["bundle_key"])
 		self.doc_source = self.bundle.get_or_create_source()
 		self.dataset, created = DataSet.objects\
 			.get_or_create(name=params["specific"]["dataset"])
@@ -64,9 +61,10 @@ class RiverFetcherAgent(Worker):
 ################################################################################
 
 class LinkSpotterAgent(Worker):
+	process = True
 
 	def __init_worker__(self, params):
-		self.bundle = bundle.get_bundle(params["specific"]["bundle_key"])
+		self.bundle = bundle.get(params["specific"]["bundle_key"])
 		self.input_source = self.bundle.get_or_create_source()
 		self.output_dataset, created = DataSet.objects.\
 			get_or_create(name=params["specific"]["output_dataset"])
@@ -92,15 +90,15 @@ class LinkSpotterAgent(Worker):
 class RiverLinkIOHelper(WorkerIOHelper):
 
 	def __init__(self, params):
-		django.db.close_connection()
 		super(RiverLinkIOHelper, self).__init__(params)
-		self.bundle = bundle.get_bundle(params["specific"]["bundle_key"])
+		self.bundle = bundle.get(params["specific"]["bundle_key"])
 		self.input_source = self.bundle.get_or_create_source()
 		self.input_dataset = DataSet.objects\
 			.get(name=params["specific"]["input_dataset"])
 		self.rivers = RawRiver.objects\
 			.filter(dataset=self.input_dataset, source=self.input_source)
 		self.rivers_count = self.rivers.count()
+		print "the count is .... %s " % str(self.rivers_count)
 		self.task_iter = self.rivers.__iter__()
 
 	@property
@@ -137,13 +135,12 @@ class PageFetcherAgent(Worker):
 class RawDocumentIOHelper(WorkerIOHelper):
 
 	def __init__(self, params):
-		django.db.close_connection()
 		super(RawDocumentIOHelper, self).__init__(params)
 		self.input_dataset = DataSet.objects\
 			.get(name=params["specific"]["input_dataset"])
-		self.e_urls = ExtractedUrl.objects.filter(dataset = self.input_dataset)
+		self.e_urls = self.input_dataset.unfetched_rawdocs
 		self.e_urls_count = self.e_urls.count()
-		self.task_iter = self.e_urls.__iter__()
+		self.task_iter = self.e_urls.iterator()
 
 	@property
 	def total_tasks(self):

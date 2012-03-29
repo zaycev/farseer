@@ -1,25 +1,32 @@
 # -*- coding: utf-8 -*-
-import traceback
+
+from collections import deque
 from django.core import serializers
 from django.db import transaction
-from collections import deque
+from agent import AbsAgent
+from agent import Timeout
+from agent import Message
 from abc import abstractmethod
 from abc import ABCMeta
-from agent import AbsAgent, Message
 
-import logging
-import urllib
-
+import django.db
+import traceback
+import urllib2
+import time
+import gc
 
 class WorkerIOHelper(object):
 	__metaclass__ = ABCMeta
 
 	@abstractmethod
 	def __init__(self, params):
-		self.tasks_read = 0
+		django.db.close_connection()
 		self.serializer = serializers.get_serializer("json")()
 		self.task_iter = None
 		self.deferred_tasks = deque()
+		self.errors = 0
+		self.error_limit = 32
+		self.dropped_tasks = 0
 
 	@property
 	@abstractmethod
@@ -32,25 +39,38 @@ class WorkerIOHelper(object):
 			sid = transaction.savepoint()
 			try:
 				record.save()
-				transaction.savepoint_commit(sid)
 			except Exception:
 				transaction.savepoint_rollback(sid)
 				print traceback.format_exc()
+			else:
+				transaction.savepoint_commit(sid)
+		gc.collect()
 
 	def deserialize(self, json):
 		return serializers.deserialize("json", json)
 
 	def read_next_task(self):
+		if not len(self.deferred_tasks):
+			for _ in xrange(0, 128):
+				try:
+					new_task = (self.task_iter.next(), 0)
+					self.deferred_tasks.append(new_task)
+				except StopIteration: break
 		if len(self.deferred_tasks):
-			next_task = self.deferred_tasks.pop()
-		else:
-			next_task = self.task_iter.next()
-		self.tasks_read += 1
-		return next_task
+			return self.deferred_tasks.pop()
+		raise StopIteration()
 
 	def try_it_later(self, task):
-		self.tasks_read -= 1
-		self.deferred_tasks.appendleft(task)
+		task, error_counter = task
+		self.errors += 1
+		if error_counter < self.error_limit:
+			self.deferred_tasks.appendleft((task, error_counter + 1,))
+		else:
+			self.dropped_tasks += 1
+			print "task droppped", task
+
+	def cache_size(self):
+		return len(self.deferred_tasks)
 
 
 class Worker(AbsAgent):
@@ -61,10 +81,11 @@ class Worker(AbsAgent):
 		BUSY = 1
 
 	def __init__(self, address, params):
+		django.db.close_connection()
 		self.params = params
 		self.worker = None
 		self.serializer = None
-		super(Worker, self).__init__(address, latency=self.Latency.LOW)
+		super(Worker, self).__init__(address, latency=Timeout.Latency.LOW)
 
 	def __init_agent__(self):
 		super(Worker, self).__init_agent__()
@@ -79,14 +100,16 @@ class Worker(AbsAgent):
 		if message.extra is Message.TASK:
 			task = message.body
 			try:
-				result = self.do_work(task)
+				result = self.do_work(task[0])
 				self.mailbox.send(result, message.sent_from, Message.DONE)
+				gc.collect()
 			except Exception:
 				error_str = u"task: <%s>\n%s.__handle_message__: \n%s"\
 							% (str(task),
 							   self.__class__.__name__,
 							   traceback.format_exc())
 				self.mailbox.send(error_str, message.sent_from, Message.FAIL)
+				time.sleep(self.tm.current)
 		else:
 			error_str = u"%s.__handle_message__" \
 						u"got wrongmessage type: %s %s"\
@@ -108,12 +131,12 @@ class Worker(AbsAgent):
 
 class TextFetcher(object):
 
-	def __init__(self, encoding="utf-8", timeout=45):
+	def __init__(self, encoding="utf-8", timeout=25):
 		self.timeout = timeout
 		self.encoding = encoding
 
 	def fetch_text(self, url):
-		req = urllib.urlopen(url)
+		req = urllib2.urlopen(url, timeout=self.timeout)
 		encoding = self.encoding
 		try:
 			content_type_params = req.info().getplist()

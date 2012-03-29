@@ -2,8 +2,8 @@
 
 import gc
 import datetime
-import multiprocessing
 
+from agent import Timeout
 from agent import Message
 from agent import AbsAgent
 from agent import Agency
@@ -89,12 +89,13 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 		self.complete_tasks = None
 		self.sent_tasks = None
 		self.error_log = None
-		super(AbsSupervisor, self).__init__(address, latency=self.Latency.EXTRA_LOW)
+		super(AbsSupervisor, self).__init__(address,
+			latency=Timeout.Latency.EXTRA_LOW)
 
 	def __init_agent__(self):
 		super(AbsSupervisor, self).__init_agent__()
 		self.worker_slots = dict()
-		self.error_log = deque(maxlen=64)
+		self.error_log = deque(maxlen=32)
 		self.params = self.__full_default_params__()
 		self.status = ISupervisor.Status.SLEEP
 
@@ -126,6 +127,7 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 			self.complete_tasks = 0
 			self.io_helper = None
 			self.sent_tasks = None
+			self.error_log = deque(maxlen=32)
 
 	def __handle_message__(self, message, *args, **kwargs):
 		if self.status is ISupervisor.Status.BUSY:
@@ -147,7 +149,8 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 					worker = self.worker_slots[address]
 					worker.status = Worker.Status.WAIT
 				self.error_log.append((datetime.datetime.now(), message.body))
-			if self.complete_tasks == self.io_helper.total_tasks:
+			if self.complete_tasks == self.io_helper.total_tasks -\
+									  self.io_helper.dropped_tasks:
 				self.status = ISupervisor.Status.DONE
 
 	def do_periodic_things(self):
@@ -186,13 +189,12 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 						del(self.worker_slots[address])
 					return
 			for slot in self.worker_slots.itervalues():
-				if slot.agent.call("__is_free__",(),self.mailbox):
-					slot.agent.stop(self.mailbox)
-					address = slot.agent.address
-					Agency.free_address(address, self.mailbox)
-					with self.mailbox.lock:
-						del(self.worker_slots[address])
-					return
+				slot.agent.stop(self.mailbox)
+				address = slot.agent.address
+				Agency.free_address(address, self.mailbox)
+				with self.mailbox.lock:
+					del(self.worker_slots[address])
+				return
 
 	def __active_workers__(self):
 		active = 0
@@ -200,6 +202,9 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 			if slot.status is Worker.Status.BUSY:
 				active += 1
 		return active
+
+	def __clear_log__(self):
+		self.error_log = deque(maxlen=32)
 
 	def __set_pool_size__(self, new_size):
 		self.params["common"]["pool_size"] = int(new_size)
@@ -215,10 +220,13 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 				("status", ISupervisor.Status.name(self.status)),
 				("complete_percentage", self.__complete_percentage__()),
 				("total_tasks", self.io_helper.total_tasks if self.io_helper else 0),
-				("complete_tasks", self.complete_tasks),
+				("complete_tasks", self.complete_tasks if self.complete_tasks else 0),
 				("params", self.params),
 				("active_workers", self.__active_workers__()),
-				("error_log", list(self.error_log))
+				("error_log", print_log(self.error_log)),
+				("errors_occurred", self.io_helper.errors if self.io_helper else 0),
+				("dropped_tasks", self.io_helper.dropped_tasks if self.io_helper else 0),
+				("cached_tasks", self.io_helper.cache_size() if self.io_helper else 0),
 			))),
 			("specific", OrderedDict(specific)),
 		))
@@ -255,4 +263,9 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 			return float(self.complete_tasks)\
 				   / float(self.io_helper.total_tasks)\
 				   * 100.0
-		return None
+		return 0
+
+
+def print_log(log):
+	from itertools import imap
+	return u"\n".join(imap(lambda x: x[1], log))
