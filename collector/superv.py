@@ -4,6 +4,7 @@ from supervisor import AbsSupervisor
 from collector.workers import RiverFetcherAgent
 from collector.workers import LinkSpotterAgent
 from collector.workers import PageFetcherAgent
+from collector.workers import PageParserAgent
 
 class RiverFetcher(AbsSupervisor):
 	name = "River Fetcher"
@@ -21,9 +22,6 @@ class RiverFetcher(AbsSupervisor):
 			("dataset", ""),
 		)
 
-	def __get_state__(self):
-		return (),()
-
 
 class LinkSpotter(AbsSupervisor):
 	name = "Link Spotter"
@@ -40,9 +38,6 @@ class LinkSpotter(AbsSupervisor):
 			("output_dataset", ""),
 		)
 
-	def __get_state__(self):
-		return (),()
-
 
 class PageFetcher(AbsSupervisor):
 	name = "Page Fetcher"
@@ -58,5 +53,18 @@ class PageFetcher(AbsSupervisor):
 			("output_dataset", "RU.look.at.me.2"),
 		)
 
-	def __get_state__(self):
-		return (),()
+
+class PageParser(AbsSupervisor):
+	name = "Page Parser"
+
+	def __init__(self, address):
+		super(PageParser, self).__init__(address, PageParserAgent)
+
+	def __default_params__(self):
+		return (
+			("pool_size", 1),
+		),(
+			("bundle_key", "FORBES"),
+			("input_dataset", "EN.Forbes.invest"),
+			("output_dataset", "EN.Forbes.invest"),
+		)

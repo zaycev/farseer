@@ -10,6 +10,7 @@ from collector.models import DataSet
 from collector.models import RawRiver
 from collector.models import ExtractedUrl
 from collector.models import RawDocument
+from collector.models import Document
 
 ################################################################################
 # River Fethcing ###############################################################
@@ -92,10 +93,8 @@ class LinkSpotterAgent(Worker):
 	def __init_worker__(self, params):
 		self.bundle = bundle.get(params["specific"]["bundle_key"])
 		self.input_source = self.bundle.get_or_create_source()
-		self.output_dataset, created = DataSet.objects\
-			.get_or_create(name=params["specific"]["output_dataset"])
-		if not created:
-			self.output_dataset.save()
+		self.output_dataset = DataSet.objects\
+			.get(name=params["specific"]["output_dataset"])
 
 	def do_work(self, river_body):
 		links = self.bundle.spot_links(river_body)
@@ -163,3 +162,53 @@ class PageFetcherAgent(Worker):
 	@staticmethod
 	def make_io_helper(params):
 		return RawDocumentIOHelper(params)
+
+
+################################################################################
+# Text Extracting ##############################################################
+################################################################################
+
+class DocumentIOHelper(WorkerIOHelper):
+
+	def __init__(self, params):
+		super(DocumentIOHelper, self).__init__(params)
+		input_dataset = DataSet.objects\
+			.get(name=params["specific"]["input_dataset"])
+		output_dataset, created = DataSet.objects\
+			.get_or_create(name=params["specific"]["output_dataset"])
+		rawdocs = output_dataset.rawdocs(input_dataset)
+		self.rawdocs_count = rawdocs.count()
+		rawdoc_ids = map(lambda rd: rd["id"], rawdocs.values("id"))
+		self.task_iter = self.rawdoc_iter(rawdoc_ids)
+		if not created: output_dataset.save()
+
+	@staticmethod
+	def rawdoc_iter(id_list):
+		for new_id in id_list:
+			url = RawDocument.objects.get(id=new_id)
+			yield url
+
+	@property
+	def total_tasks(self):
+		return self.rawdocs_count
+
+
+class PageParserAgent(Worker):
+
+	def __init_worker__(self, params):
+		self.output_dataset = DataSet.objects\
+			.get(name=params["specific"]["output_dataset"])
+		self.bundle = bundle.get(params["specific"]["bundle_key"])
+
+	def do_work(self, rawdoc):
+#		body = self.fetcher.fetch_text(url)
+#		raw_doc = RawDocument(
+#			url = url,
+#			dataset = self.output_dataset,
+#			body = body,
+#		)
+		return self.serializer.serialize([])
+
+	@staticmethod
+	def make_io_helper(params):
+		return DocumentIOHelper(params)

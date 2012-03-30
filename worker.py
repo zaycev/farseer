@@ -53,7 +53,7 @@ class WorkerIOHelper(object):
 
 	def read_next_task(self):
 		if not len(self.deferred_tasks):
-			for _ in xrange(0, 128):
+			for _ in xrange(0, 256):
 				try:
 					new_task = (self.task_iter.next(), 0)
 					self.deferred_tasks.append(new_task)
@@ -113,22 +113,32 @@ class Worker(AbsAgent):
 
 	def __handle_message__(self, message, *args, **kwargs):
 		if message.extra is Message.TASK:
-			task = message.body
-			#print "got task", task
-			try:
-				result = self.do_work(task[0])
-				#print "work done"
-				self.mailbox.send(result, message.sent_from, Message.DONE)
-				gc.collect()
-				#print "message sent"
-			except Exception:
-				#print "error occured"
-				error_str = u"task: <%s>\n%s.__handle_message__: \n%s"\
-							% (str(task),
-							   self.__class__.__name__,
-							   traceback.format_exc())
-				self.mailbox.send(error_str, message.sent_from, Message.FAIL)
-				time.sleep(self.tm.current)
+			task_frame = message.body
+			output_frame = []
+			print "got frame", len(task_frame)
+			for task_key, task in task_frame:
+				try:
+					result = self.do_work(task[0])
+					#print "work done"
+					output_frame.append((task_key, Message.DONE, result))
+					gc.collect()
+					#print "message sent"
+				except Exception:
+
+
+
+
+					#print "error occured"
+					error_str = u"task: <%s>\n%s.__handle_message__: \n%s"\
+								% (str(task),
+								   self.__class__.__name__,
+								   traceback.format_exc())
+
+
+					output_frame.append((task_key, Message.FAIL, error_str))
+
+			self.mailbox.send(output_frame, message.sent_from, Message.TASK)
+
 		else:
 			error_str = u"%s.__handle_message__" \
 						u"got wrongmessage type: %s %s"\

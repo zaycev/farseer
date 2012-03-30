@@ -3,6 +3,7 @@
 import gc
 import datetime
 
+from agent import gen_key
 from agent import Timeout
 from agent import Message
 from agent import AbsAgent
@@ -98,6 +99,7 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 		self.error_log = deque(maxlen=32)
 		self.params = self.__full_default_params__()
 		self.status = ISupervisor.Status.SLEEP
+		self.agent_buffer = 8
 
 	def __run_session__(self):
 		if self.status is ISupervisor.Status.SLEEP\
@@ -109,16 +111,22 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 			self.sent_tasks = dict()
 
 	def __assign_next_task__(self, worker_slot):
-		if self.status is ISupervisor.Status.BUSY:
-			next_task = None
-			try:
-				next_task = self.io_helper.read_next_task()
-			except StopIteration: pass
-			if next_task:
-				address = worker_slot.agent.address
-				self.mailbox.send(next_task, address, Message.TASK)
-				worker_slot.status = Worker.Status.BUSY
-				self.sent_tasks[address] = next_task
+		with self.mailbox.lock:
+			if self.status is ISupervisor.Status.BUSY:
+				task_frame = []
+				for _ in xrange(0, self.agent_buffer):
+					try:
+						new_task = self.io_helper.read_next_task()
+						task_key = gen_key()
+						task_frame.append((task_key, new_task))
+						self.sent_tasks[task_key] = new_task
+					except StopIteration: break
+				print "task frame size", len(task_frame)
+				if task_frame:
+					address = worker_slot.agent.address
+					self.mailbox.send(task_frame, address, Message.TASK)
+					print "task frame send"
+					worker_slot.status = Worker.Status.BUSY
 
 	def __stop_session__(self):
 		if self.status is ISupervisor.Status.BUSY:
@@ -129,30 +137,35 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 			self.sent_tasks = None
 			self.error_log = deque(maxlen=32)
 
+	def handle_done_task(self, task_key, task):
+		with self.mailbox.lock:
+			self.io_helper.save_output(task)
+			self.complete_tasks += 1
+			del self.sent_tasks[task_key]
+
+	def handle_failed_task(self, task_key, error_str):
+		with self.mailbox.lock:
+			failed_task = self.sent_tasks[task_key]
+			self.io_helper.try_it_later(failed_task)
+			self.error_log.append((datetime.datetime.now(), error_str))
+			del self.sent_tasks[task_key]
+
 	def __handle_message__(self, message, *args, **kwargs):
-		print "handle", message
 		if self.status is ISupervisor.Status.BUSY:
-			if message.extra is message.DONE:
-				self.complete_tasks += 1
-				worker_output = message.body
-				with self.mailbox.lock:
-					self.io_helper.save_output(worker_output)
+			if message.extra is message.TASK:
 				address = message.sent_from
-				del self.sent_tasks[address]
 				if address in self.worker_slots:
 					worker = self.worker_slots[address]
 					worker.status = Worker.Status.WAIT
-			elif message.extra is message.FAIL:
-				address = message.sent_from
-				worker_last_task = self.sent_tasks[address]
-				self.io_helper.try_it_later(worker_last_task)
-				del self.sent_tasks[address]
-				if address in self.worker_slots:
-					worker = self.worker_slots[address]
-					worker.status = Worker.Status.WAIT
-				self.error_log.append((datetime.datetime.now(), message.body))
-			if self.complete_tasks == self.io_helper.total_tasks -\
-									  self.io_helper.dropped_tasks:
+				output_frame = message.body
+				for task_key, extra, result in output_frame:
+					if extra is Message.DONE:
+						self.handle_done_task(task_key, result)
+					elif extra is message.FAIL:
+						self.handle_failed_task(task_key, result)
+			actual_task_number = self.io_helper.total_tasks\
+							   - self.io_helper.dropped_tasks
+			if self.complete_tasks == actual_task_number:
 				self.status = ISupervisor.Status.DONE
 
 	def do_periodic_things(self):

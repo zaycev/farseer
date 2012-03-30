@@ -9,6 +9,7 @@ from agent import create_agency, MailBox, Timeout
 from collector.superv import RiverFetcher
 from collector.superv import LinkSpotter
 from collector.superv import PageFetcher
+from collector.superv import PageParser
 from collector.models import DataSet
 from collector.models import RawRiver, RawDocument, ExtractedUrl
 from collections import OrderedDict
@@ -20,9 +21,10 @@ agency = create_agency()
 mb = MailBox(agency.alloc_address(), latency=Timeout.Latency.EXTRA_LOW)
 
 supervisors = [
-#	RiverFetcher(agency.alloc_address()),
+	RiverFetcher(agency.alloc_address()),
 	LinkSpotter(agency.alloc_address()),
-#	PageFetcher(agency.alloc_address()),
+	PageFetcher(agency.alloc_address()),
+	PageParser(agency.alloc_address()),
 ]
 services = OrderedDict([(sup.address, sup) for sup in supervisors])
 

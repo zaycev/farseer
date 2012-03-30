@@ -85,6 +85,15 @@ class DataSet(models.Model):
 			params=[input_dataset.id, self.id],
 		)
 
+	def rawdocs(self, input_dataset):
+		return RawDocument.objects.extra(
+			where=["dataset_id = %s AND url NOT IN "
+				   "(SELECT url FROM collector_document "
+				   "WHERE dataset_id=%s)"],
+			params=[input_dataset.id, self.id],
+		)
+
+
 	class Meta:
 		ordering = ("name",)
 
@@ -154,25 +163,26 @@ class Author(models.Model):
 		verify_exists=False, db_index=True)
 
 	def __unicode__(self):
-		return u"<Author('#%s', '%s')>" % (self.id, self.name)
+		return u"<Author(id=#%s, name='%s')>" % (self.id, self.name)
 
 
-#class Document(models.Model):
-#	url = models.ForeignKey(ExtractedUrl, to_field="url", max_length=256,
-#		db_index=True, null=False, blank=False)
-#	dataset = models.ForeignKey(DataSet, rel_class=models.ManyToOneRel,
-#		null=False, db_index=True)
-#	title = models.CharField(max_length=320, null=False, blank=False)
-#	summary = models.CharField(max_length=4096, null=False, blank=True)
-#	content = models.TextField(blank=False, null=False)
-#	image_url = models.URLField(max_length=256, null=True, blank=False,
-#		unique=False, verify_exists=False)
-#	published = models.DateTimeField(null=False, blank=False, db_index=True)
-#	authors = models.ManyToManyField(Author)
-#	mime_type = models.CharField(max_length=32, null=False, blank=False)
-#
-#	def __unicode__(self):
-#		return u"<Document('#%s', '%s')>" % (self.id, self.title)
+class Document(models.Model):
+	url = models.URLField(max_length=256, null=False, blank=False,
+		verify_exists=False, db_index=True)
+	dataset = models.ForeignKey(DataSet, rel_class=models.ManyToOneRel,
+		null=False, db_index=True)
+	title = models.CharField(max_length=320, null=False, blank=False)
+	summary = models.CharField(max_length=4096, null=False, blank=True)
+	content = models.TextField(blank=False, null=False)
+	image_url = models.URLField(max_length=256, null=True, blank=False,
+		unique=False, verify_exists=False)
+	published = models.DateTimeField(null=False, blank=False, db_index=True)
+	authors = models.ManyToManyField(Author)
+	mime_type = models.CharField(max_length=32, null=False, blank=False)
+
+	def __unicode__(self):
+		return u"<Document(id=%s, dataset=%s, title='%s')>"\
+			% (self.id, self.dataset.id, self.title)
 
 
 #class ProbeSource(models.Model):
