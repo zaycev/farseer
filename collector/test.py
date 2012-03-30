@@ -5,7 +5,7 @@ import unittest
 
 from collector.workers import TextFetcher
 
-TEXT_FETCHER_URL = "http://google.com"
+TEXT_FETCHER_URL = "http://python.org"
 class TextDataFetcherTest(unittest.TestCase):
 
 	def test_init(self):

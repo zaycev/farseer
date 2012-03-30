@@ -60,18 +60,45 @@ class RiverFetcherAgent(Worker):
 # Link Spotting ################################################################
 ##################w##############################################################
 
+class RiverLinkIOHelper(WorkerIOHelper):
+
+	def __init__(self, params):
+		super(RiverLinkIOHelper, self).__init__(params)
+		self.bundle = bundle.get(params["specific"]["bundle_key"])
+		self.input_source = self.bundle.get_or_create_source()
+		input_dataset = DataSet.objects\
+			.get(name=params["specific"]["input_dataset"])
+		self.output_dataset, created = DataSet.objects\
+			.get_or_create(name=params["specific"]["output_dataset"])
+		rivers = RawRiver.objects\
+			.filter(dataset=input_dataset, source=self.input_source)
+		self.rivers_count = rivers.count()
+		river_id_list =  map(lambda riv: riv["id"], rivers.values("id"))
+		self.task_iter = self.lazy_river_body_iter(river_id_list)
+		if not created: self.output_dataset.save()
+
+	@property
+	def total_tasks(self):
+		return self.rivers_count
+
+	def lazy_river_body_iter(self, river_id_list):
+		for new_id in river_id_list:
+			yield RawRiver.objects.values("body").get(id=new_id)["body"]
+
+
 class LinkSpotterAgent(Worker):
 	process = True
 
 	def __init_worker__(self, params):
 		self.bundle = bundle.get(params["specific"]["bundle_key"])
 		self.input_source = self.bundle.get_or_create_source()
-		self.output_dataset, created = DataSet.objects.\
-			get_or_create(name=params["specific"]["output_dataset"])
-		if not created: self.output_dataset.save()
+		self.output_dataset, created = DataSet.objects\
+			.get_or_create(name=params["specific"]["output_dataset"])
+		if not created:
+			self.output_dataset.save()
 
-	def do_work(self, raw_river):
-		links = self.bundle.spot_links(raw_river.body)
+	def do_work(self, river_body):
+		links = self.bundle.spot_links(river_body)
 		worker_output = []
 		for url in links:
 			extracted_url = ExtractedUrl(
@@ -87,27 +114,35 @@ class LinkSpotterAgent(Worker):
 		return RiverLinkIOHelper(params)
 
 
-class RiverLinkIOHelper(WorkerIOHelper):
-
-	def __init__(self, params):
-		super(RiverLinkIOHelper, self).__init__(params)
-		self.bundle = bundle.get(params["specific"]["bundle_key"])
-		self.input_source = self.bundle.get_or_create_source()
-		self.input_dataset = DataSet.objects\
-			.get(name=params["specific"]["input_dataset"])
-		self.rivers = RawRiver.objects\
-			.filter(dataset=self.input_dataset, source=self.input_source)
-		self.rivers_count = self.rivers.count()
-		self.task_iter = self.rivers.__iter__()
-
-	@property
-	def total_tasks(self):
-		return self.rivers_count
-
-
 ################################################################################
 # Link Spotting ################################################################
 ################################################################################
+
+class RawDocumentIOHelper(WorkerIOHelper):
+
+	def __init__(self, params):
+		super(RawDocumentIOHelper, self).__init__(params)
+		input_dataset = DataSet.objects\
+			.get(name=params["specific"]["input_dataset"])
+		output_dataset, created = DataSet.objects\
+			.get_or_create(name=params["specific"]["output_dataset"])
+		e_urls = output_dataset.unfetched_rawdocs(input_dataset)
+		self.e_urls_count = e_urls.count()
+		unfetched_ids = map(lambda eurl: eurl["id"], e_urls.values("id"))
+		self.task_iter = self.url_lazy_iter(unfetched_ids)
+
+		if not created: output_dataset.save()
+
+	@staticmethod
+	def url_lazy_iter(id_list):
+		for new_id in id_list:
+			url = ExtractedUrl.objects.values("url").get(id=new_id)["url"]
+			yield url
+
+	@property
+	def total_tasks(self):
+		return self.e_urls_count
+
 
 class PageFetcherAgent(Worker):
 
@@ -115,10 +150,8 @@ class PageFetcherAgent(Worker):
 		self.output_dataset = DataSet.objects\
 			.get(name=params["specific"]["output_dataset"])
 		self.fetcher = TextFetcher()
-		print "ok, inited, %s" % self.address
 
-	def do_work(self, eurl):
-		url = eurl["url"]
+	def do_work(self, url):
 		body = self.fetcher.fetch_text(url)
 		raw_doc = RawDocument(
 			url = url,
@@ -130,30 +163,3 @@ class PageFetcherAgent(Worker):
 	@staticmethod
 	def make_io_helper(params):
 		return RawDocumentIOHelper(params)
-
-
-class RawDocumentIOHelper(WorkerIOHelper):
-
-	def __init__(self, params):
-		super(RawDocumentIOHelper, self).__init__(params)
-		input_dataset = DataSet.objects\
-			.get(name=params["specific"]["input_dataset"])
-		output_dataset = DataSet.objects\
-			.get(name=params["specific"]["output_dataset"])
-		e_urls = output_dataset.unfetched_rawdocs(input_dataset)
-		self.e_urls_count = e_urls.count()
-		unfetched_ids = map(lambda eurl: eurl["id"], e_urls.values("id"))
-		print len(unfetched_ids)
-		self.task_iter = RawDocumentIOHelper.id_list_iter(unfetched_ids)
-
-	@staticmethod
-	def id_list_iter(id_list):
-		for new_id in id_list:
-			print new_id
-			url = ExtractedUrl.objects.values("url").get(id=new_id)
-			print url
-			yield url
-
-	@property
-	def total_tasks(self):
-		return self.e_urls_count

@@ -52,10 +52,10 @@ class PageFetcher(AbsSupervisor):
 
 	def __default_params__(self):
 		return (
-			("pool_size", 128),
+			("pool_size", 1),
 		),(
-			("input_dataset", ""),
-			("output_dataset", ""),
+			("input_dataset", "RU.look.at.me"),
+			("output_dataset", "RU.look.at.me.2"),
 		)
 
 	def __get_state__(self):

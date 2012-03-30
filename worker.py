@@ -11,6 +11,7 @@ from abc import ABCMeta
 
 import django.db
 import traceback
+import logging
 import urllib2
 import time
 import gc
@@ -30,25 +31,22 @@ class WorkerIOHelper(object):
 
 	@property
 	@abstractmethod
-	def total_task(self):
+	def total_tasks(self):
 		raise NotImplementedError("You should implement this method")
 
 	def save_output(self, worker_output_json):
 		worker_output = self.deserialize(worker_output_json)
-		print "try save records"
 		for record in worker_output:
 			sid = transaction.savepoint()
-			print "try save record"
 			try:
 				record.save()
 			except Exception:
 				transaction.savepoint_rollback(sid)
 				print traceback.format_exc()
-				print "task", record
 			else:
 				transaction.savepoint_commit(sid)
 		django.db.reset_queries()
-		print "collected %s" % str(gc.collect())
+		gc.collect()
 
 	def deserialize(self, json):
 		return serializers.deserialize("json", json)
@@ -59,7 +57,7 @@ class WorkerIOHelper(object):
 				try:
 					new_task = (self.task_iter.next(), 0)
 					self.deferred_tasks.append(new_task)
-				except StopIteration: print "Stop Iteration"
+				except StopIteration: pass
 		if len(self.deferred_tasks):
 			return self.deferred_tasks.pop()
 		raise StopIteration()
@@ -76,6 +74,18 @@ class WorkerIOHelper(object):
 	def cache_size(self):
 		return len(self.deferred_tasks)
 
+
+class TestIOHelper(WorkerIOHelper):
+
+	def __init__(self, params):
+		super(TestIOHelper, self).__init__(params)
+		self.tasks_count = params.get("tasks_count", 100)
+		self.task_iter = xrange(0, self.tasks_count).__iter__()
+
+
+	@property
+	def total_tasks(self):
+		return self.tasks_count
 
 class Worker(AbsAgent):
 	process = False
@@ -104,11 +114,15 @@ class Worker(AbsAgent):
 	def __handle_message__(self, message, *args, **kwargs):
 		if message.extra is Message.TASK:
 			task = message.body
+			print "got task", task
 			try:
 				result = self.do_work(task[0])
+				print "work done"
 				self.mailbox.send(result, message.sent_from, Message.DONE)
 				gc.collect()
+				print "message sent"
 			except Exception:
+				print "error occured"
 				error_str = u"task: <%s>\n%s.__handle_message__: \n%s"\
 							% (str(task),
 							   self.__class__.__name__,
@@ -134,6 +148,29 @@ class Worker(AbsAgent):
 		raise WorkerIOHelper(params)
 
 
+class TestWorker(Worker):
+
+	def __init_worker__(self, params):
+		self.increment = params["increment"]
+
+	def do_work(self, task):
+		import fortest.models
+		result = fortest.models.MockModel(
+			task = task,
+			result = task + self.increment
+		)
+		logging.debug(
+			"tasks left %s" %
+			self.mailbox.conn.llen(self.mailbox.address)
+		)
+		return self.serializer.serialize([result])
+
+	@staticmethod
+	def make_io_helper(params):
+		return TestIOHelper(params)
+
+
+
 class TextFetcher(object):
 
 	def __init__(self, encoding="utf-8", timeout=25):
@@ -141,7 +178,10 @@ class TextFetcher(object):
 		self.encoding = encoding
 
 	def fetch_text(self, url):
-		req = urllib2.urlopen(url, timeout=self.timeout)
+		print "openning url"
+		print url
+		req = urllib2.urlopen("http://google.com")
+		print "detect encoding"
 		encoding = self.encoding
 		try:
 			content_type_params = req.info().getplist()
@@ -153,4 +193,6 @@ class TextFetcher(object):
 					encoding = value
 					break
 		except Exception: pass
+		print "detected", encoding
+		print "try read url"
 		return unicode(req.read(), encoding)

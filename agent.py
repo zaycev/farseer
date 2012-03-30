@@ -19,6 +19,8 @@ from abc import abstractmethod
 ALPHABET = "abcdefghijklmnopqrstuvwxyz"\
 		   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"\
 		   "0123456789"
+AGENCY_WRAPPER = None
+
 KEY_LEN = 8
 
 def gen_key(length=KEY_LEN, alphabet=ALPHABET):
@@ -137,12 +139,12 @@ class Message(object):
 
 
 class MailBox(object):
-	def __init__(self, address, latency=Timeout.Latency.MEDIUM):
+	def __init__(self, address, latency=Timeout.Latency.EXTRA_LOW):
 		self.lock = threading.RLock()
 		with self.lock:
 			self.address = str(address)
 			self.pool = connection_pool()
-			self.conn = redis.Redis(connection_pool=self.pool)
+			self.conn = redis.StrictRedis(connection_pool=self.pool)
 			self.tm = Timeout(max_iter=1024)
 			self.tm.set_latency(latency)
 
@@ -158,15 +160,16 @@ class MailBox(object):
 		message = Message(self.address, to_address, message_body, extra=extra)
 		packed = message.dumps()
 		with self.lock:
+			print "try lpush %s" % to_address
 			self.conn.lpush(to_address, packed)
+			print "ok, lpushed"
 
 	def pop_message(self):
-		message = None
 		with self.lock:
-			packed = self.conn.rpop(self.address)
-			if packed:
-				message = Message.loads(packed)
-		return message
+			if self.conn.llen(self.address) > 0:
+				packed = self.conn.rpop(self.address)
+				return Message.loads(packed)
+		return None
 
 	def messages(self):
 		message = self.pop_message()
@@ -220,7 +223,7 @@ class AbsAgent(object):
 		else:
 			self.unit = threading\
 				.Thread(target=self.__message_loop__, args=(self,))
-		#self.unit.daemon = True
+#		self.unit.daemon = True
 		self.unit.start()
 
 	def __init_agent__(self):
@@ -260,6 +263,7 @@ class AbsAgent(object):
 				agent.tm.reset()
 			else:
 				time.sleep(t)
+				#print "sleep"
 			agent.do_periodic_things()
 
 	def do_periodic_things(self):
@@ -334,22 +338,24 @@ class Agency(AbsAgent):
 			self.mailbox.conn.flushdb()
 		self.mailbox.conn.set(self.call_back_address, "SUCCESS")
 		self.agent_addresses = set()
-		self.counter = 100
+		self.counter = 1000
 
 	def _alloc_address(self):
-		new_address = self.counter
-		self.counter += 1
-		#new_address = gen_key()
-		#while new_address in self.agent_addresses:
-#			new_address = gen_key()
+		new_address = str(self.counter)
 		self.agent_addresses.add(new_address)
-		return str(self.counter)
+		self.counter += 1
+		return new_address
 
 	def _free_address(self, address):
 		self.agent_addresses.discard(address)
+		return address
 
 	def _addr_exists(self, address):
 		return address in self.agent_addresses
+
+	@staticmethod
+	def _send_agency(message_body, send_from_mb, extra=Message.REGULAR):
+		send_from_mb.send(message_body, Agency.agency_address, extra)
 
 	@staticmethod
 	def _call_agency(func_name, args, send_from_mb):
@@ -372,5 +378,43 @@ class Agency(AbsAgent):
 		func_name = "_addr_exists"
 		return Agency._call_agency(func_name, (address,), send_from_mb)
 
+	@staticmethod
+	def stop_all(send_from_mb):
+		Agency._send_agency(None, send_from_mb, extra=Message.STOP)
+
 	def __handle_message__(self, message, *args, **kwargs):
 		pass
+
+	def terminate(self):
+		logging.debug("AGENCY TERMINATED")
+		for address in self.agent_addresses:
+			self.mailbox.send(None, address, Message.STOP)
+		self.mailbox.destroy()
+
+
+class AgencyWrapper(object):
+
+	def __init__(self):
+		Agency()
+		self.mb = MailBox("master")
+
+	def alloc_address(self):
+		return Agency.alloc_address(self.mb)
+
+	def free_address(self, address):
+		return Agency.free_address(address, self.mb)
+
+	def addr_exists(self, address):
+		return Agency.addr_exists(address, self.mb)
+
+	def stop_all(self):
+		global AGENCY_WRAPPER
+		AGENCY_WRAPPER = None
+		Agency.stop_all(self.mb)
+
+
+def create_agency():
+	global AGENCY_WRAPPER
+	if not AGENCY_WRAPPER:
+		AGENCY_WRAPPER = AgencyWrapper()
+	return AGENCY_WRAPPER

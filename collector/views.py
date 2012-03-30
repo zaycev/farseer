@@ -5,7 +5,7 @@ from django.http import HttpResponse, HttpResponseForbidden, HttpResponseNotFoun
 from django.shortcuts import redirect
 from django.shortcuts import render_to_response
 from bundle import get_bundles
-from agent import Agency, MailBox, Timeout
+from agent import create_agency, MailBox, Timeout
 from collector.superv import RiverFetcher
 from collector.superv import LinkSpotter
 from collector.superv import PageFetcher
@@ -15,13 +15,14 @@ from collections import OrderedDict
 
 from django.utils.simplejson import dumps, loads
 
+agency = create_agency()
 
-Agency()
-mb = MailBox("@morbo",latency=Timeout.Latency.EXTRA_LOW)
+mb = MailBox(agency.alloc_address(), latency=Timeout.Latency.EXTRA_LOW)
+
 supervisors = [
-	RiverFetcher(Agency.alloc_address(mb)),
-	LinkSpotter(Agency.alloc_address(mb)),
-	PageFetcher(Agency.alloc_address(mb)),
+#	RiverFetcher(agency.alloc_address()),
+	LinkSpotter(agency.alloc_address()),
+#	PageFetcher(agency.alloc_address()),
 ]
 services = OrderedDict([(sup.address, sup) for sup in supervisors])
 
@@ -107,10 +108,12 @@ def model_list(request, format):
 		return HttpResponseForbidden("model %s doesn't exist" % model)
 	try:
 		dataset_id = request.GET.get("dataset", -1)
+		limit = request.GET.get("limit", 100)
+		offset = request.GET.get("offset", 0)
 		ds = DataSet.objects.get(id=dataset_id)
 		if model == "eurl":
 			objs = ExtractedUrl.objects.filter(dataset=ds)\
-				.order_by("?").values("id","url")[0:100]
+				.order_by("?").values("id","url")[offset:(limit + offset)]
 		else:
 			return HttpResponseNotFound("model %s doesn't exist" % model)
 		if format == "json": return HttpResponse(dumps(list(objs)), content_type="application/json")

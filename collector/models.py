@@ -85,7 +85,6 @@ class DataSet(models.Model):
 			params=[input_dataset.id, self.id],
 		)
 
-
 	class Meta:
 		ordering = ("name",)
 
