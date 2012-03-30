@@ -59,24 +59,24 @@ class Timeout(object):
 
 	def set_latency(self, latency):
 		if latency is self.Latency.EXTRA_LOW:
-			self.initial = 0.015
-			self.max = 0.120
+			self.initial = 0.010
+			self.max = 0.50
 			self.k = 1.030
 		elif latency is self.Latency.LOW:
-			self.initial = 0.050
-			self.max = 0.200
+			self.initial = 0.025
+			self.max = 0.100
 			self.k = 1.050
 		elif latency is self.Latency.MEDIUM:
-			self.initial = 0.100
-			self.max = 0.500
+			self.initial = 0.050
+			self.max = 0.150
 			self.k = 1.020
 		elif latency is self.Latency.HIGH:
-			self.initial = 0.200
-			self.max = .800
+			self.initial = 0.100
+			self.max = .200
 			self.k = 1.030
 		elif latency is self.Latency.EXTRA_HIGH:
-			self.initial = 0.200
-			self.max = 3.000
+			self.initial = 0.120
+			self.max = 0.500
 			self.k = 1.050
 
 	def __iter__(self):
@@ -144,7 +144,7 @@ class MailBox(object):
 		with self.lock:
 			self.address = str(address)
 			self.pool = connection_pool()
-			self.conn = redis.StrictRedis(connection_pool=self.pool)
+			self.conn = redis.Redis(connection_pool=self.pool)
 			self.tm = Timeout(max_iter=1024)
 			self.tm.set_latency(latency)
 
