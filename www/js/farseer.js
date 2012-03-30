@@ -42,19 +42,6 @@ Farseer.Collector.call = function(address, func, make_args, callback) {
 };
 
 
-Farseer.Collector.get_model = function(model_name, instance_id, callback) {
-	$.ajax({
-		method:"GET",
-		url:"/apps/collector/api/v0/model/get.json",
-		dataType:"json",
-		data:{
-			model: model_name,
-			id: instance_id
-		},
-		success: callback
-	});
-};
-
 Farseer.Collector.get_model = function(model_name, instance_id, dataset_id, callback) {
 	$.ajax({
 		method:"GET",

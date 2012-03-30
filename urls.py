@@ -17,3 +17,9 @@ urlpatterns = patterns('',
 	url(r'^apps/collector/api/v0/model/list\.(json|xml)$', collector.model_list),
 	url(r'^apps/collector/api/v0/model/delete\.(json|xml)$', collector.service_call),
 )
+
+urlpatterns += patterns('', (
+	r'^www/(?P<path>.*)$',
+	'django.views.static.serve',
+		{'document_root': 'www'}
+))

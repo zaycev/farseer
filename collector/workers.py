@@ -98,7 +98,6 @@ class RiverLinkIOHelper(WorkerIOHelper):
 		self.rivers = RawRiver.objects\
 			.filter(dataset=self.input_dataset, source=self.input_source)
 		self.rivers_count = self.rivers.count()
-		print "the count is .... %s " % str(self.rivers_count)
 		self.task_iter = self.rivers.__iter__()
 
 	@property
@@ -113,10 +112,10 @@ class RiverLinkIOHelper(WorkerIOHelper):
 class PageFetcherAgent(Worker):
 
 	def __init_worker__(self, params):
-		self.output_dataset, created = DataSet.objects.\
-			get_or_create(name=params["specific"]["output_dataset"])
-		if not created: self.output_dataset.save()
+		self.output_dataset = DataSet.objects\
+			.get(name=params["specific"]["output_dataset"])
 		self.fetcher = TextFetcher()
+		print "ok, inited, %s" % self.address
 
 	def do_work(self, eurl):
 		url = eurl["url"]
@@ -139,9 +138,21 @@ class RawDocumentIOHelper(WorkerIOHelper):
 		super(RawDocumentIOHelper, self).__init__(params)
 		input_dataset = DataSet.objects\
 			.get(name=params["specific"]["input_dataset"])
-		e_urls = input_dataset.unfetched_rawdocs
+		output_dataset = DataSet.objects\
+			.get(name=params["specific"]["output_dataset"])
+		e_urls = output_dataset.unfetched_rawdocs(input_dataset)
 		self.e_urls_count = e_urls.count()
-		self.task_iter = list(e_urls.values("url").all().__iter__()).__iter__()
+		unfetched_ids = map(lambda eurl: eurl["id"], e_urls.values("id"))
+		print len(unfetched_ids)
+		self.task_iter = RawDocumentIOHelper.id_list_iter(unfetched_ids)
+
+	@staticmethod
+	def id_list_iter(id_list):
+		for new_id in id_list:
+			print new_id
+			url = ExtractedUrl.objects.values("url").get(id=new_id)
+			print url
+			yield url
 
 	@property
 	def total_tasks(self):

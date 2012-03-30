@@ -107,6 +107,7 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 			self.complete_tasks = 0
 			self.__respawn_workers__()
 			self.sent_tasks = dict()
+			print "all spawned"
 
 	def __assign_next_task__(self, worker_slot):
 		if self.status is ISupervisor.Status.BUSY:
@@ -130,11 +131,14 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 			self.error_log = deque(maxlen=32)
 
 	def __handle_message__(self, message, *args, **kwargs):
+		print "handle", message
 		if self.status is ISupervisor.Status.BUSY:
 			if message.extra is message.DONE:
 				self.complete_tasks += 1
 				worker_output = message.body
-				self.io_helper.save_output(worker_output)
+				print "sup, try save"
+				with self.mailbox.lock:
+					self.io_helper.save_output(worker_output)
 				address = message.sent_from
 				del self.sent_tasks[address]
 				if address in self.worker_slots:
@@ -154,6 +158,7 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 				self.status = ISupervisor.Status.DONE
 
 	def do_periodic_things(self):
+		print "assigning tasks"
 		self.__assing_tasks__()
 
 	def __assing_tasks__(self):

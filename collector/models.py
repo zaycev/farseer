@@ -3,6 +3,7 @@
 from django.db import models
 from django.db.models import Min, Max
 
+import datetime
 
 class DocumentSource(models.Model):
 	name = models.CharField(max_length=128, null=False, blank=False)
@@ -23,6 +24,10 @@ class DataSet(models.Model):
 	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False,
 		db_index=True)
 	summory = models.CharField(max_length=4096, null=True, blank=True)
+
+#	def save(self, *args, **kwargs):
+#		if not self.id:
+#			self.timestamp = datetime.datetime.now()
 
 	def __unicode__(self):
 		return u"<Dataset('#%s', '%s')>" % (self.id, self.name)
@@ -71,13 +76,13 @@ class DataSet(models.Model):
 			"to": max_date["timestamp__max"],
 		}
 
-	@property
-	def unfetched_rawdocs(self):
+
+	def unfetched_rawdocs(self, input_dataset):
 		return ExtractedUrl.objects.extra(
 			where=["dataset_id = %s AND url NOT IN "
 				   "(SELECT url FROM collector_rawdocument "
 				   "WHERE dataset_id=%s)"],
-			params=[self.id, self.id],
+			params=[input_dataset.id, self.id],
 		)
 
 
@@ -97,12 +102,13 @@ class RawRiver(models.Model):
 	body = models.TextField(null=False, blank=False)
 	mime_type = models.CharField(max_length=32, null=False, blank=False)
 
+#	def save(self, *args, **kwargs):
+#		if not self.id:
+#			self.timestamp = datetime.datetime.now()
+
 	def __unicode__(self):
 		return u"<RawRiver('#%s', '%s', '%s')>" % (self.id, self.url,
 												   self.timestamp)
-
-#	class Meta:
-#		ordering = (,)
 
 
 class ExtractedUrl(models.Model):
@@ -114,10 +120,12 @@ class ExtractedUrl(models.Model):
 		null=False)
 
 	def __unicode__(self):
-		return u"<ExtractedUrl('#%s', '%s')>" % (self.id, self.url)
+		return u"<ExtractedUrl(id='%s', url='%s', dataset='%s')>" \
+				% (self.id, self.url, self.dataset.id)
 
 	class Meta:
 		unique_together = ("url", "dataset",)
+
 
 class RawDocument(models.Model):
 	url = models.URLField(max_length=256, null=False, blank=False,
@@ -129,6 +137,10 @@ class RawDocument(models.Model):
 	body = models.TextField(null=False, blank=False)
 	mime_type = models.CharField(max_length=32, null=False, blank=False,
 		default="text/html")
+
+#	def save(self, *args, **kwargs):
+#		if not self.id:
+#			self.timestamp = datetime.datetime.now()
 
 	def __unicode__(self):
 		return u"<RawDocument('#%s', '%s', '%s')>" % (self.id, self.url,

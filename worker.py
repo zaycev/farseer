@@ -35,16 +35,20 @@ class WorkerIOHelper(object):
 
 	def save_output(self, worker_output_json):
 		worker_output = self.deserialize(worker_output_json)
+		print "try save records"
 		for record in worker_output:
 			sid = transaction.savepoint()
+			print "try save record"
 			try:
 				record.save()
 			except Exception:
 				transaction.savepoint_rollback(sid)
 				print traceback.format_exc()
+				print "task", record
 			else:
 				transaction.savepoint_commit(sid)
-		gc.collect()
+		django.db.reset_queries()
+		print "collected %s" % str(gc.collect())
 
 	def deserialize(self, json):
 		return serializers.deserialize("json", json)
@@ -55,7 +59,7 @@ class WorkerIOHelper(object):
 				try:
 					new_task = (self.task_iter.next(), 0)
 					self.deferred_tasks.append(new_task)
-				except StopIteration: break
+				except StopIteration: print "Stop Iteration"
 		if len(self.deferred_tasks):
 			return self.deferred_tasks.pop()
 		raise StopIteration()
@@ -67,7 +71,7 @@ class WorkerIOHelper(object):
 			self.deferred_tasks.appendleft((task, error_counter + 1,))
 		else:
 			self.dropped_tasks += 1
-			print "task droppped", task
+			#print "task droppped", task
 
 	def cache_size(self):
 		return len(self.deferred_tasks)
@@ -89,9 +93,10 @@ class Worker(AbsAgent):
 
 	def __init_agent__(self):
 		super(Worker, self).__init_agent__()
-		self.serializer = serializers.get_serializer("json")()
-		self.__init_worker__(self.params)
-		self.params = None
+		with self.mailbox.lock:
+			self.serializer = serializers.get_serializer("json")()
+			self.__init_worker__(self.params)
+			self.params = None
 
 	def __init_worker__(self, params):
 		pass
