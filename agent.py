@@ -160,9 +160,9 @@ class MailBox(object):
 		message = Message(self.address, to_address, message_body, extra=extra)
 		packed = message.dumps()
 		with self.lock:
-			print "try lpush %s" % to_address
+			#print "try lpush %s" % to_address
 			self.conn.lpush(to_address, packed)
-			print "ok, lpushed"
+			#print "ok, lpushed"
 
 	def pop_message(self):
 		with self.lock:

@@ -42,7 +42,7 @@ class WorkerIOHelper(object):
 				record.save()
 			except Exception:
 				transaction.savepoint_rollback(sid)
-				print traceback.format_exc()
+				#print traceback.format_exc()
 			else:
 				transaction.savepoint_commit(sid)
 		django.db.reset_queries()
@@ -114,15 +114,15 @@ class Worker(AbsAgent):
 	def __handle_message__(self, message, *args, **kwargs):
 		if message.extra is Message.TASK:
 			task = message.body
-			print "got task", task
+			#print "got task", task
 			try:
 				result = self.do_work(task[0])
-				print "work done"
+				#print "work done"
 				self.mailbox.send(result, message.sent_from, Message.DONE)
 				gc.collect()
-				print "message sent"
+				#print "message sent"
 			except Exception:
-				print "error occured"
+				#print "error occured"
 				error_str = u"task: <%s>\n%s.__handle_message__: \n%s"\
 							% (str(task),
 							   self.__class__.__name__,
@@ -178,10 +178,10 @@ class TextFetcher(object):
 		self.encoding = encoding
 
 	def fetch_text(self, url):
-		print "openning url"
-		print url
+		#print "openning url"
+		#print url
 		req = urllib2.urlopen("http://google.com")
-		print "detect encoding"
+		#print "detect encoding"
 		encoding = self.encoding
 		try:
 			content_type_params = req.info().getplist()
@@ -193,6 +193,6 @@ class TextFetcher(object):
 					encoding = value
 					break
 		except Exception: pass
-		print "detected", encoding
-		print "try read url"
+		#print "detected", encoding
+		#print "try read url"
 		return unicode(req.read(), encoding)
