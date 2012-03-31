@@ -99,7 +99,7 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 		self.error_log = deque(maxlen=32)
 		self.params = self.__full_default_params__()
 		self.status = ISupervisor.Status.SLEEP
-		self.agent_buffer = 8
+		self.agent_task_frame_size = 128
 
 	def __run_session__(self):
 		if self.status is ISupervisor.Status.SLEEP\
@@ -114,7 +114,7 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 		with self.mailbox.lock:
 			if self.status is ISupervisor.Status.BUSY:
 				task_frame = []
-				for _ in xrange(0, self.agent_buffer):
+				for _ in xrange(0, self.agent_task_frame_size):
 					try:
 						new_task = self.io_helper.read_next_task()
 						task_key = gen_key()

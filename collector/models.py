@@ -157,14 +157,6 @@ class RawDocument(models.Model):
 	class Meta:
 		unique_together = ("url", "dataset",)
 
-class Author(models.Model):
-	name = models.CharField(max_length=128, null=False, blank=False)
-	url = models.URLField(max_length=256, null=False, blank=False, unique=True,
-		verify_exists=False, db_index=True)
-
-	def __unicode__(self):
-		return u"<Author(id=#%s, name='%s')>" % (self.id, self.name)
-
 
 class Document(models.Model):
 	url = models.URLField(max_length=256, null=False, blank=False,
@@ -177,12 +169,24 @@ class Document(models.Model):
 	image_url = models.URLField(max_length=256, null=True, blank=False,
 		unique=False, verify_exists=False)
 	published = models.DateTimeField(null=False, blank=False, db_index=True)
-	authors = models.ManyToManyField(Author)
-	mime_type = models.CharField(max_length=32, null=False, blank=False)
+	mime_type = models.CharField(default="text", max_length=32, null=False, blank=False)
 
 	def __unicode__(self):
 		return u"<Document(id=%s, dataset=%s, title='%s')>"\
 			% (self.id, self.dataset.id, self.title)
+
+	class Meta:
+		unique_together = ("url", "dataset",)
+
+
+class Author(models.Model):
+	url = models.URLField(primary_key=True, max_length=256, null=False,
+		blank=False, unique=True, verify_exists=False, db_index=True)
+	name = models.CharField(max_length=128, null=True, blank=True)
+	documents = models.ManyToManyField(Document)
+
+	def __unicode__(self):
+		return u"<Author(id=#%s, name='%s')>" % (self.id, self.name)
 
 
 #class ProbeSource(models.Model):

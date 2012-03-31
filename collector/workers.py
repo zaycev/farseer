@@ -11,6 +11,7 @@ from collector.models import RawRiver
 from collector.models import ExtractedUrl
 from collector.models import RawDocument
 from collector.models import Document
+from collector.models import Author
 
 ################################################################################
 # River Fethcing ###############################################################
@@ -201,13 +202,21 @@ class PageParserAgent(Worker):
 		self.bundle = bundle.get(params["specific"]["bundle_key"])
 
 	def do_work(self, rawdoc):
-#		body = self.fetcher.fetch_text(url)
-#		raw_doc = RawDocument(
-#			url = url,
-#			dataset = self.output_dataset,
-#			body = body,
-#		)
-		return self.serializer.serialize([])
+		parsed = self.bundle.extract_essential(rawdoc)
+		try:
+			new_doc = Document(
+				url = rawdoc.url,
+				dataset = self.output_dataset,
+				title = parsed["title"],
+				summary = "",
+				content = parsed["content"],
+				published = parsed["published"],
+			)
+			authors = [Author(url = url) for url in parsed["author_url"]]
+			return self.serializer.serialize([new_doc] + authors)
+		except Exception:
+			import traceback
+			print traceback.format_exc()
 
 	@staticmethod
 	def make_io_helper(params):

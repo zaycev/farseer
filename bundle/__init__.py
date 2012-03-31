@@ -21,8 +21,9 @@ def get(key):
 			return bundle
 	raise KeyError("Bundle with key %s not found" % key)
 
+DEFAULT_DIR = "/Volumes/FAT 32GB/testsuite"
 
-def install_test_datasets(bundles, datasets, test_size=32, place_dir="bundle/test"):
+def install_test_datasets(bundles, datasets, test_size=512, place_dir=DEFAULT_DIR):
 
 	import os
 	import pickle
@@ -59,8 +60,7 @@ def install_test_datasets(bundles, datasets, test_size=32, place_dir="bundle/tes
 		install_model_dataset(cm.RawRiver, bundle, dataset)
 		install_model_dataset(cm.RawDocument, bundle, dataset)
 
-
-def iterate_test_objects(model, place_dir="bundle/test"):
+def iterate_test_objects(model, place_dir=DEFAULT_DIR):
 
 	import os
 	import codecs

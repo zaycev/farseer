@@ -42,7 +42,7 @@ class WorkerIOHelper(object):
 				record.save()
 			except Exception:
 				transaction.savepoint_rollback(sid)
-				#print traceback.format_exc()
+				print traceback.format_exc()
 			else:
 				transaction.savepoint_commit(sid)
 		django.db.reset_queries()
@@ -124,21 +124,13 @@ class Worker(AbsAgent):
 					gc.collect()
 					#print "message sent"
 				except Exception:
-
-
-
-
 					#print "error occured"
 					error_str = u"task: <%s>\n%s.__handle_message__: \n%s"\
 								% (str(task),
 								   self.__class__.__name__,
 								   traceback.format_exc())
-
-
 					output_frame.append((task_key, Message.FAIL, error_str))
-
 			self.mailbox.send(output_frame, message.sent_from, Message.TASK)
-
 		else:
 			error_str = u"%s.__handle_message__" \
 						u"got wrongmessage type: %s %s"\
