@@ -7,27 +7,17 @@
 		<table class="table table-bordered table-condensed">
 			<tbody>
 			<tr>
-				<td class="fs-stripped">Sources</td>
+				<td class="fs-stripped">See data:</td>
 				<td style="text-align:center;">
-					{% for source in active.doc_sources %}
-						<a href="{{ source.url }}">
-							{{ source.name }}</a>
-						{% if not forloop.last %},{% endif %}
-					{% endfor %}
+					<button class="btn btn-mini" id="get-random-rawdoc">Get random example</button>
 				</td>
-				<td rowspan="2"
+				<td
 					style="vertical-align:middle;text-align:center;width:192px;">
 									<span style="font-size:17px;">
 										{{ active.rawdocument_set.count }}
 									</span>
 					<img style="margin-top:-5px;"
 						 src="/www/icons/page_white_text.png">
-				</td>
-			</tr>
-			<tr>
-				<td class="fs-stripped">See data:</td>
-				<td style="text-align:center;">
-					<button class="btn btn-mini" id="get-random-rawdoc">Get random example</button>
 				</td>
 			</tr>
 			</tbody>

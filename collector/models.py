@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from django.db import models
+from django.db import connection
 from django.db.models import Min, Max
 
 import datetime
@@ -69,8 +70,9 @@ class DataSet(models.Model):
 
 	@property
 	def collecting_period(self):
-		min_date = RawRiver.objects.filter(dataset=self).aggregate(Min("timestamp"))
-		max_date = RawRiver.objects.filter(dataset=self).aggregate(Max("timestamp"))
+		_min, _max = Min("timestamp"), Max("timestamp")
+		min_date = RawRiver.objects.filter(dataset=self).aggregate(_min)
+		max_date = RawRiver.objects.filter(dataset=self).aggregate(_max)
 		return {
 			"since": min_date["timestamp__min"],
 			"to": max_date["timestamp__max"],
@@ -79,7 +81,7 @@ class DataSet(models.Model):
 
 	def unfetched_rawdocs(self, input_dataset):
 		return ExtractedUrl.objects.extra(
-			where=["dataset_id = %s AND url NOT IN "
+			where=["dataset_id=%s AND url NOT IN "
 				   "(SELECT url FROM collector_rawdocument "
 				   "WHERE dataset_id=%s)"],
 			params=[input_dataset.id, self.id],
@@ -87,12 +89,28 @@ class DataSet(models.Model):
 
 	def rawdocs(self, input_dataset):
 		return RawDocument.objects.extra(
-			where=["dataset_id = %s AND url NOT IN "
+			where=["dataset_id=%s AND url NOT IN "
 				   "(SELECT url FROM collector_document "
 				   "WHERE dataset_id=%s)"],
 			params=[input_dataset.id, self.id],
 		)
-
+		
+	def docs_by_year(self):
+		sql = """SELECT year, (SELECT count(*)::int4
+					FROM collector_document
+					WHERE dataset_id=%s
+						AND EXTRACT(YEAR from published)=year)
+		FROM
+			(SELECT DISTINCT EXTRACT(YEAR from t1.published)::int2 as year
+			FROM collector_document as t1
+			WHERE dataset_id=%s) AS t_years
+		ORDER BY year ASC;
+		"""
+		cursor = connection.cursor()
+		cursor.execute(sql, (self.id, self.id,))
+		rows = cursor.fetchall()
+		cursor.close()
+		return rows
 
 	class Meta:
 		ordering = ("name",)
@@ -169,8 +187,9 @@ class Document(models.Model):
 	image_url = models.URLField(max_length=256, null=True, blank=False,
 		unique=False, verify_exists=False)
 	published = models.DateTimeField(null=False, blank=False, db_index=True)
-	mime_type = models.CharField(default="text", max_length=32, null=False, blank=False)
-
+	mime_type = models.CharField(default="text", max_length=32, null=False,
+		blank=False)
+	
 	def __unicode__(self):
 		return u"<Document(id=%s, dataset=%s, title='%s')>"\
 			% (self.id, self.dataset.id, self.title)

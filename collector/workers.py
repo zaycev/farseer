@@ -186,8 +186,8 @@ class DocumentIOHelper(WorkerIOHelper):
 	@staticmethod
 	def rawdoc_iter(id_list):
 		for new_id in id_list:
-			url = RawDocument.objects.get(id=new_id)
-			yield url
+			rawdoc = RawDocument.objects.get(id=new_id)
+			yield rawdoc
 
 	@property
 	def total_tasks(self):
@@ -203,20 +203,16 @@ class PageParserAgent(Worker):
 
 	def do_work(self, rawdoc):
 		parsed = self.bundle.extract_essential(rawdoc)
-		try:
-			new_doc = Document(
-				url = rawdoc.url,
-				dataset = self.output_dataset,
-				title = parsed["title"],
-				summary = "",
-				content = parsed["content"],
-				published = parsed["published"],
-			)
-			authors = [Author(url = url) for url in parsed["author_url"]]
-			return self.serializer.serialize([new_doc] + authors)
-		except Exception:
-			import traceback
-			print traceback.format_exc()
+		new_doc = Document(
+			url = rawdoc.url,
+			dataset = self.output_dataset,
+			title = parsed["title"],
+			summary = "",
+			content = parsed["content"],
+			published = parsed["published"],
+		)
+		authors = [Author(url = url) for url in parsed["author_url"]]
+		return self.serializer.serialize([new_doc] + authors)
 
 	@staticmethod
 	def make_io_helper(params):

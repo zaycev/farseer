@@ -1,0 +1,101 @@
+<div class="fs-section">
+	<h3 class="fs-section-label">
+		Structured Documents
+	</h3>
+
+	<div class="fs-body">
+		<table class="table table-bordered table-condensed">
+			<tbody>
+			<tr>
+				<td>Publish Dates</td>
+				<td style="text-align:center;">
+					{% for year, count in active.docs_by_year %}
+						<strong>{{ year }}</strong>({{ count }}){% if not forloop.last%},{% endif %}
+					{% endfor %}
+				</td>
+			</tr>
+			<tr>
+				<td class="fs-stripped">See data:</td>
+				<td style="text-align:center;">
+					<button class="btn btn-mini" id="get-random-rawdoc">Get random example</button>
+				</td>
+				<td
+						style="vertical-align:middle;text-align:center;width:192px;">
+									<span style="font-size:17px;">
+										{{ active.rawdocument_set.count }}
+									</span>
+					<img style="margin-top:-5px;"
+						 src="/www/icons/document_comments.png">
+				</td>
+			</tr>
+			</tbody>
+		</table>
+	</div>
+</div>
+
+
+{# <script type="text/javascript"> #}
+{#  $(function(){ #}
+{#    $("#get-random-rawdoc").bind("click", function(){ #}
+{#      $("#rawdoc-modal").modal("show"); #}
+{#      $("#rawdoc-body").html("<img src='/www/loader.gif'/>"); #}
+{#      Farseer.Collector.get_model("rawdoc", "@", {{ active.id }}, function(data){ #}
+{#        $("#rawdoc-body").html("<pre id='rawdoc-pre'><code id='rawdoc-code'></code></pre>"); #}
+{#        var pre_e = $("#rawdoc-pre")[0]; #}
+{#        var code_e = $("#rawdoc-code")[0]; #}
+{#        $("#rawdoc-id").attr("value", data.id); #}
+{#        $("#rawdoc-link").attr("href", data.url); #}
+{#        $(code_e).text(data.body); #}
+{#        hljs.highlightBlock(pre_e, '\t'); #}
+{#      }); #}
+{#    }); #}
+{#    $("#close-rawdoc-modal").click(function(){ #}
+{#      $("#rawdoc-modal").modal("hide"); #}
+{#    }); #}
+{#    $("#reload-rawdoc-modal").bind("click", function(){ #}
+{#      $("#rawdoc-body").html("<pre id='rawdoc-pre'><code id='rawdoc-code'></code></pre>"); #}
+{#      var pre_e = $("#rawdoc-pre")[0]; #}
+{#      var code_e = $("#rawdoc-code")[0]; #}
+{#      Farseer.Collector.get_model("rawdoc", $("#rawdoc-id").val(), {{ active.id }}, function(data){ #}
+{#        $("#rawdoc-id").attr("value", data.id); #}
+{#        $("#rawdoc-link").attr("href", data.url); #}
+{#        $(code_e).text(data.body); #}
+{#        hljs.highlightBlock(pre_e, '\t'); #}
+{#      }); #}
+{#    }); #}
+{#  }); #}
+{# </script> #}
+{#  #}
+{# <div id="rawdoc-modal" #}
+{#   class="modal hide fade" #}
+{#   style="display:none;width:940px;left:36%;"> #}
+{#  <div class="modal-header"> #}
+{#    <h3> #}
+{#      <img style="margin-top:-4px;" src="/www/icons/dice.png" alt=""> #}
+{#      Raw Document #}
+{#      | <a id="rawdoc-link" href="">Original Link</a> #}
+{#  #}
+{#      <div style="display:inline-block;margin-left:32px;" class="form-horizontal"> #}
+{#        <div class="input-prepend input-append"> #}
+{#          <input id="rawdoc-id"/> #}
+{#          <a class="btn add-on" id="reload-rawdoc-modal" style="cursor:pointer;"> #}
+{#            <i class="icon-refresh"></i> #}
+{#          </a> #}
+{#        </div> #}
+{#      </div> #}
+{#  #}
+{#  #}
+{#      <a class="close" data-dismiss="modal">×</a> #}
+{#    </h3> #}
+{#  </div> #}
+{#  <div class="modal-body" #}
+{#     id="rawdoc-body"> #}
+{#    <img src="/www/loader.gif"/> #}
+{#  </div> #}
+{#  <div class="modal-footer well"> #}
+{#    <a class="btn btn-primary" href="#" #}
+{#       id="close-rawdoc-modal"> #}
+{#      Close #}
+{#    </a> #}
+{#  </div> #}
+{# </div> #}

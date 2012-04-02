@@ -169,7 +169,11 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 				self.status = ISupervisor.Status.DONE
 
 	def do_periodic_things(self):
+		import pickle
 		self.__assing_tasks__()
+		# TODO(vladimir@zvm.me): refactor this
+		state = self.__get_full_state__()
+		self.mailbox.conn.set("@%s" % self.address, pickle.dumps(state))
 
 	def __assing_tasks__(self):
 		if self.status is ISupervisor.Status.BUSY:
@@ -284,3 +288,11 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 def print_log(log):
 	from itertools import imap
 	return u"\n".join(imap(lambda x: x[1], log))
+
+
+def read_supv_state(mailbox, supv):
+	import pickle
+	state = mailbox.conn.get("@%s" % supv.address)
+	if state:
+		return pickle.loads(state)
+	return None

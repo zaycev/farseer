@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>{{ document.title }}</title>
+	</head>
+	<body>
+		<h1># {{ document.id }} | {{ document.title }}</h1>
+		<h3>{{ document.published|date:"Y.m.d H:i" }}</h3
+		<p>
+			{{ document.content }}
+		</p>
+		
+		<a href="{{ document.url }}">{{ document.url }}</a>
+		
+		<p>
+			<strong>Dataset:</strong> <span>{{ document.dataset.name }}</span>
+		</p>
+		
+	</body>
+</html>

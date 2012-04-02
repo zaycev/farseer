@@ -11,8 +11,9 @@ from collector.superv import LinkSpotter
 from collector.superv import PageFetcher
 from collector.superv import PageParser
 from collector.models import DataSet
-from collector.models import RawRiver, RawDocument, ExtractedUrl
+from collector.models import RawRiver, RawDocument, ExtractedUrl, Document
 from collections import OrderedDict
+from supervisor import read_supv_state
 
 from django.utils.simplejson import dumps, loads
 
@@ -34,7 +35,7 @@ def apps(request):
 def show_service(request, address):
 	if address not in services:
 		return redirect("/apps/collector/service/%s" % services.values()[0].address)
-	service_states = OrderedDict([(serv.address, serv.call("__get_full_state__", (), mb))
+	service_states = OrderedDict([(serv.address, read_supv_state(mb, serv),)
 						for serv in services.itervalues()])
 	datasets = DataSet.objects.all()
 	bundles = get_bundles()
@@ -46,7 +47,7 @@ def show_service(request, address):
 	})
 
 def show_dataset(request, dataset_id):
-	service_states = OrderedDict([(serv.address, serv.call("__get_full_state__", (), mb))
+	service_states = OrderedDict([(serv.address, read_supv_state(mb, serv),)
 		for serv in services.itervalues()])
 	datasets = DataSet.objects.all()
 	bundles = get_bundles()
@@ -71,32 +72,40 @@ def service_call(request, format):
 	except Exception: return HttpResponseNotFound()
 
 
-def _get_instance(model, id, dataset_id=None):
+def _get_instance(model, id, dataset_id=None, values=None):
 	if not issubclass(model, Model):
 		raise TypeError("model should be inherited from django.db.models.Model")
 	if id == "@":
 		ds = DataSet.objects.get(id=dataset_id)
-		return model.objects.filter(dataset=ds).order_by("?")[0]
+		query = model.objects.filter(dataset=ds).order_by("?")
+		if values: return query.values(*values)[0]
+		return query[0]
 	else:
+		if values: return model.objects.values(*values).get(id=id)
 		return model.objects.get(id=id)
+
 
 
 def model_get(request, format):
 	model = request.GET.get("model")
-	if model not in ("river", "rawdoc", "probe"):
+	if model not in ("doc", "river", "rawdoc", "probe"):
 		return HttpResponseForbidden("model %s doesn't exist" % model)
 	try:
 		id = request.GET.get("id", -1)
 		dataset_id = request.GET.get("dataset")
 		if model == "river":
-			river = _get_instance(RawRiver, id, dataset_id)
-			obj = {"id": river.id, "body": river.body}
+			obj = _get_instance(RawRiver, id, dataset_id,
+								("id", "url", "body",))
 		elif model == "rawdoc":
-			doc = _get_instance(RawDocument, id, dataset_id)
-			obj = {"id": doc.id, "body": doc.body, "url": doc.url,}
+			obj = _get_instance(RawDocument, id, dataset_id,
+								("id", "url", "body",))
+		elif model == "doc":
+			obj = _get_instance(Document, id, dataset_id,
+				("id", "url", "title", "summary", "content", "published"))
 		else:
 			return HttpResponseNotFound("model %s doesn't exist" % model)
-		if format == "json": return HttpResponse(dumps(obj), content_type="application/json")
+		if format == "json": return HttpResponse(dumps(obj),
+				content_type="application/json")
 		return HttpResponseForbidden("internal error")
 	except Exception:
 		import traceback
@@ -118,7 +127,8 @@ def model_list(request, format):
 				.order_by("?").values("id","url")[offset:(limit + offset)]
 		else:
 			return HttpResponseNotFound("model %s doesn't exist" % model)
-		if format == "json": return HttpResponse(dumps(list(objs)), content_type="application/json")
+		if format == "json": return HttpResponse(dumps(list(objs)),
+				content_type="application/json")
 		return HttpResponseForbidden("internal error")
 	except Exception:
 		import traceback

@@ -10,7 +10,11 @@ try:
 	imp.find_module('settings') # Assumed to be in the same directory.
 except ImportError:
 	import sys
-	sys.stderr.write("Error: Can't find the file 'settings.py' in the directory containing %r. It appears you've customized things.\nYou'll have to run django-admin.py, passing it your settings module.\n" % __file__)
+	sys.stderr.write("Error: Can't find the file 'settings.py'"
+					"in the directory containing %r. It appears"
+					" you've customized things.\nYou'll have to"
+					" run django-admin.py, passing it your "
+					"settings module.\n" % __file__)
 	sys.exit(1)
 
 import time
@@ -276,8 +280,9 @@ TERMINATING_TIMEOUT = 0.3
 #		for _ in xrange(0, 10):
 #			self.test_do_work()
 #
-#from collector.test import *
-from bundle.test import *
+# from collector.test import *
+# from bundle.test import *
+from analyzer.test import *
 
 if __name__ == "__main__":
 	setup_environment()
