@@ -20,6 +20,8 @@ def make_lexicon(input_dataset, output_dataset=None, workers=4, buff_size=256,
 		output_dataset = input_dataset
 	if max_docs:
 		documents = input_dataset.document_set.order_by("?")[0:max_docs]
+	else:
+		documents = input_dataset.document_set.order_by("?")
 
 	logging.debug("init workers pool")
 	pool = Pool(workers)
