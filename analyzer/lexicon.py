@@ -95,6 +95,7 @@ def make_lexicon(input_dataset, output_dataset=None, workers=4, buff_size=256,
 			token_cache = []
 			gc.collect()
 	am.Token.objects.bulk_create(token_cache)
+	logging.debug("%s terms flushed" % len(token_cache))
 	token_cache = []
 	gc.collect()
 

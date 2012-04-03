@@ -31,7 +31,10 @@ class NlpUtilTest(unittest.TestCase):
 		"the English Language“) 1."
 
 		util = make_util()
-		tokens = util.tokenize(text)
+		tokens = list(util.tokenize(text))
+
+		print tokens
+
 		self.assertTrue(len(tokens) > 0)
 
 		logging.debug(len(tokens))

@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 
 from analyzer.tagger import make_tagger
-
 from nltk import TreebankWordTokenizer
-from nltk.data import load
-from nltk.tag import _POS_TAGGER
 from nltk.chunk import _MULTICLASS_NE_CHUNKER
 from nltk.tokenize import PunktSentenceTokenizer
+from nltk.data import load
+
 
 import logging
 import pickle
 import gc
 
+
 UTIL = None
-term_cache = None
+
 
 class NlpUtil(object):
 
@@ -24,19 +24,14 @@ class NlpUtil(object):
 		self.ner_tagger = load(_MULTICLASS_NE_CHUNKER)
 
 	def wrd_tokenize(self, text):
-		snts = self.snt_tokenizer.tokenize(text)
-		word_tokens = []
-		for s in snts:
-			word_tokens.extend(self.wrd_tokenizer.tokenize(s))
-		return word_tokens
-		# return self.wrd_tokenizer.tokenize(text)
+		return self.wrd_tokenizer.tokenize(text)
 
 	def pos_tag(self, tokens):
 		tagged = self.pos_tagger.tag(tokens)
 		new_tagged = []
 		for word, tag in tagged:
 			if tag is None:
-				new_tagged.append((word, "?"))
+				new_tagged.append((word, "-NONE-"))
 			else:
 				new_tagged.append((word, tag))
 		return new_tagged
@@ -45,10 +40,13 @@ class NlpUtil(object):
 		return self.ner_tagger.parse(tagged_tokens)
 		
 	def tokenize(self, text):
-		tokens = self.wrd_tokenize(text)
-		pos_tagged = self.pos_tag(tokens)
-		ner_tagged = self.ner_tag(pos_tagged)
-		return ner_tagged
+		snts = self.snt_tokenizer.tokenize(text)
+		for s in snts:
+			tokens = self.wrd_tokenize(s)
+			pos_tagged = self.pos_tag(tokens)
+			ner_tagged = self.ner_tag(pos_tagged)
+			for nt in ner_tagged:
+				yield nt
 
 def make_util():
 	global UTIL
