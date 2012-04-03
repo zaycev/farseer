@@ -13,6 +13,7 @@ import gc
 
 
 UTIL = None
+VOCB = None
 
 
 class NlpUtil(object):
@@ -48,10 +49,20 @@ class NlpUtil(object):
 			for nt in ner_tagged:
 				yield nt
 
+
 def make_util():
 	global UTIL
 	if not UTIL: UTIL = NlpUtil()
 	return UTIL
+
+
+def make_vocab(tokens_query):
+	vocab = dict()
+	for t in tokens_query.iterator():
+		tkey = make_term_key(t.text, t.postag, t.nertag)
+		vocab[tkey] = t
+	return vocab
+
 
 def count_terms(text_set):
 	util = make_util()
@@ -59,10 +70,9 @@ def count_terms(text_set):
 	# counter : key -> (<token>, <tag>, <ner_tag>, <freq>)
 	for text in text_set:
 		tokens = util.tokenize(text)
-
 		for token in tokens:
 			if type(token) is tuple:
-				# handle non NER chunk
+				# handle non-NER chunk
 				token, tag = token[0].lower(), token[1].lower()
 				token_key = token+tag
 				nertag = None
@@ -84,6 +94,26 @@ def count_terms(text_set):
 			else:
 				prev_count = counter[token_key][4]
 				counter[token_key] = (token, tag, nertag, origin, prev_count + 1)
-
 	gc.collect()
 	return counter
+
+def count_voc_terms(doc_data):
+	doc_id, text_fields = doc_data
+	# maps (fid, text) -> {tkey: count}
+	global VOCB
+	output = []
+	for fid, text in text_fields:
+		counter = count_terms((text,))
+		reduced_counter = list()#dict()
+		for tk in counter.values():
+			tkey = make_term_key(tk[0], tk[1], tk[2])
+			if tkey in VOCB:
+				if tkey in reduced_counter:
+					print "ERROR", tkey
+				# reduced_counter[tkey] = tk[4]
+				reduced_counter.append((tkey, tk[4]))
+		output.append((fid, reduced_counter,))
+	return (doc_id, output,)
+
+def make_term_key(text, postag, nertag):
+	return u"%s-%s-%s" % (str(nertag), str(postag), text)
