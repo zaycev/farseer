@@ -5,6 +5,7 @@ from lxml import etree
 from lxml.html import fromstring
 from datetime import timedelta
 from time import strftime
+import collector.sm as sm
 import traceback
 import datetime
 import re
@@ -31,8 +32,7 @@ SITE_SECTIONS = (
 	"entrepreneurs",
 	"leadership",
 	"lifestyle",
-	"lists",
-)
+	"lists",)
 PROBE_HOURS = ("00:00:01", "04:00:00",
 			   "08:00:00", "12:00:00",
 			   "16:00:00", "20:00:00",
@@ -58,6 +58,7 @@ LINK_SPOT_XPATH = "li/article/hgroup/h2/a/@href"
 def spot_links(html):
 	tree = fromstring(html)
 	return set(tree.xpath(LINK_SPOT_XPATH))
+
 
 XPATH_TITLE = "/html/head/title/text()"
 RE_TITLE = re.compile("(.+)\s+- Forbes.*")
@@ -115,3 +116,61 @@ def extract_essential(rawdoc):
 		"content": body,
 		"published": published if published else None
 	}
+
+
+XPATH_VIEWS = "id('abovefold')/div/div[1]/hgroup/h6[2]/text()"
+RE_VIEWS = re.compile("(\d+)\,?(\d+)\s+views")
+def _extract_views(tree):
+	views_str = tree.xpath(XPATH_VIEWS)
+	if views_str:
+		try:
+			if isinstance(views_str, list) and len(views_str) == 2:
+				views = re.findall(RE_VIEWS, views_str[1])[0]
+				views = int(views[0] + views[1])
+				return views
+			elif isinstance(views_str, list) and len(views_str) == 1:
+				views = re.findall(RE_VIEWS, views_str[0])[0]
+			else:
+				views = re.findall(RE_VIEWS, views_str)[0]
+			return int(views)
+		except: return -1
+	else: return -1
+XPATH_COMMENTS = "id('abovefold')/div/div[1]/div[3]/div[3]/div[2]/a/text()"
+RE_COMMENTS = re.compile("\s*(\d+)\s+.+\s+(\d+)\s+called.+\s*")
+def _extract_comments(tree):
+	comments_str = tree.xpath(XPATH_COMMENTS)
+	if comments_str:
+		comments = re.findall(RE_COMMENTS, comments_str[0])[0]
+		return int(comments[0]), int(comments[1])
+	else: return -1, -1
+def get_probes(raw_document):
+	# print raw_document.url
+	tree = fromstring(raw_document.body)
+	# fb_resp = sm.fb_probe(raw_document.url)
+	# tw_resp = sm.tw_probe(raw_document.url)
+	# su_resp = sm.su_probe(raw_document.url)
+	# li_resp = sm.li_probe(raw_document.url)
+	# dg_resp = sm.dg_probe(raw_document.url)
+	comments = _extract_comments(tree)
+	return {
+		"vi": _extract_views(tree),
+		"co": comments[0] + comments[1] if comments[0] > 0 else 0,
+		"c1": comments[0],
+		"c2": comments[1],
+		# "fb": fb_resp[0] + fb_resp[1],
+		# "fs": fb_resp[0],
+		# "fc": fb_resp[1],
+		# "tw": tw_resp,
+		# "su": su_resp,
+		# "li": li_resp,
+		# "dg": dg_resp,
+	}
+
+
+
+
+
+
+
+
+

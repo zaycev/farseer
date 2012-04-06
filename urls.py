@@ -3,6 +3,7 @@ from django.contrib import admin
 
 import collector.views as collector
 import analyzer.views as analyzer
+import search.views as search
 
 admin.autodiscover()
 urlpatterns = patterns('',
@@ -11,6 +12,8 @@ urlpatterns = patterns('',
 	url(r'^apps/collector/$', collector.apps),
 	url(r'^apps/collector/service/([a-zA-Z0-9]+)$', collector.show_service),
 	url(r'^apps/collector/dataset/([a-zA-Z0-9]+)$', collector.show_dataset),
+
+	url(r'^$', search.index),
 
 	url(r'^apps/collector/api/v0/service/call\.(json|xml)$', collector.service_call),
 

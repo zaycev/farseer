@@ -12,6 +12,7 @@ from collector.models import ExtractedUrl
 from collector.models import RawDocument
 from collector.models import Document
 from collector.models import Author
+from collector.models import Probe
 
 ################################################################################
 # River Fethcing ###############################################################
@@ -115,7 +116,7 @@ class LinkSpotterAgent(Worker):
 
 
 ################################################################################
-# Link Spotting ################################################################
+# Page Fetching ################################################################
 ################################################################################
 
 class RawDocumentIOHelper(WorkerIOHelper):
@@ -195,6 +196,7 @@ class DocumentIOHelper(WorkerIOHelper):
 
 
 class PageParserAgent(Worker):
+	process = True
 
 	def __init_worker__(self, params):
 		self.output_dataset = DataSet.objects\
@@ -217,3 +219,62 @@ class PageParserAgent(Worker):
 	@staticmethod
 	def make_io_helper(params):
 		return DocumentIOHelper(params)
+
+
+################################################################################
+# Social Statistics ############################################################
+################################################################################
+
+
+class ProbeIOHelper(WorkerIOHelper):
+
+	def __init__(self, params):
+		super(ProbeIOHelper, self).__init__(params)
+		input_dataset = DataSet.objects\
+			.get(name=params["specific"]["input_dataset"])
+		output_dataset, created = DataSet.objects\
+			.get_or_create(name=params["specific"]["output_dataset"])
+		rawdocs = input_dataset.rawdocument_set
+		self.rawdocs_count = rawdocs.count()
+		rawdoc_ids = map(lambda rd: rd["id"], rawdocs.values("id"))
+		self.task_iter = self.rawdoc_iter(rawdoc_ids)
+		if not created: output_dataset.save()
+
+	@staticmethod
+	def rawdoc_iter(id_list):
+		for new_id in id_list:
+			rawdoc = RawDocument.objects.get(id=new_id)
+			yield rawdoc
+
+	@property
+	def total_tasks(self):
+		return self.rawdocs_count
+
+
+class SocialStatAgent(Worker):
+	process = True
+
+	def __init_worker__(self, params):
+		self.output_dataset = DataSet.objects\
+			.get(name=params["specific"]["output_dataset"])
+		self.bundle = bundle.get(params["specific"]["bundle_key"])
+
+	def do_work(self, rawdoc):
+		probes = self.bundle.get_probes(rawdoc)
+		# print probes
+		new_probes = []
+		for tag, signal in probes.items():
+			new_probe = Probe(
+				target = rawdoc.url,
+				dataset = self.output_dataset,
+				tag = tag,
+				signal = signal,
+			)
+			new_probes.append(new_probe)
+		# print "DONE %s" % rawdoc.url
+		# print new_probes
+		return self.serializer.serialize(new_probes)
+
+	@staticmethod
+	def make_io_helper(params):
+		return ProbeIOHelper(params)

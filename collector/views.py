@@ -10,6 +10,7 @@ from collector.superv import RiverFetcher
 from collector.superv import LinkSpotter
 from collector.superv import PageFetcher
 from collector.superv import PageParser
+from collector.superv import SocialStat
 from collector.models import DataSet
 from collector.models import RawRiver, RawDocument, ExtractedUrl, Document
 from collections import OrderedDict
@@ -26,6 +27,7 @@ supervisors = [
 	LinkSpotter(agency.alloc_address()),
 	PageFetcher(agency.alloc_address()),
 	PageParser(agency.alloc_address()),
+	SocialStat(agency.alloc_address()),
 ]
 services = OrderedDict([(sup.address, sup) for sup in supervisors])
 

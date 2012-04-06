@@ -281,8 +281,8 @@ TERMINATING_TIMEOUT = 0.3
 #			self.test_do_work()
 #
 # from collector.test import *
-# from bundle.test import *
-from analyzer.test import *
+from bundle.test import *
+# from analyzer.test import *
 
 if __name__ == "__main__":
 	setup_environment()

@@ -21,7 +21,7 @@ def get(key):
 			return bundle
 	raise KeyError("Bundle with key %s not found" % key)
 
-DEFAULT_DIR = "/Volumes/FAT 32GB/testsuite"
+DEFAULT_DIR = "bundle/test"
 
 def install_test_datasets(bundles, datasets, test_size=512, place_dir=DEFAULT_DIR):
 

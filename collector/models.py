@@ -208,7 +208,20 @@ class Author(models.Model):
 		return u"<Author(id=#%s, name='%s')>" % (self.id, self.name)
 
 
-#class ProbeSource(models.Model):
+
+class Probe(models.Model):
+	target = models.URLField(max_length=256, null=False,
+		blank=False, verify_exists=False, db_index=True)
+	dataset = models.ForeignKey(DataSet, rel_class=models.ManyToOneRel,
+		null=False, db_index=True)
+	tag = models.CharField(max_length=4, null=False, blank=False)
+	signal = models.IntegerField(null=False, blank=False)
+
+	class Meta:
+		unique_together = ("target", "dataset", "tag")
+
+
+	#class ProbeSource(models.Model):
 #	name = models.CharField(max_length=128, null=False, blank=False)
 #	symbol = models.CharField(max_length=16, null=False, blank=False,
 #		db_index=True)

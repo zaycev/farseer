@@ -36,6 +36,7 @@ class WorkerIOHelper(object):
 
 	def save_output(self, worker_output_json):
 		worker_output = self.deserialize(worker_output_json)
+		# print worker_output_json
 		for record in worker_output:
 			sid = transaction.savepoint()
 			try:
@@ -53,7 +54,7 @@ class WorkerIOHelper(object):
 
 	def read_next_task(self):
 		if not len(self.deferred_tasks):
-			for _ in xrange(0, 256):
+			for _ in xrange(0, 1024):
 				try:
 					new_task = (self.task_iter.next(), 0)
 					self.deferred_tasks.append(new_task)
@@ -115,7 +116,7 @@ class Worker(AbsAgent):
 		if message.extra is Message.TASK:
 			task_frame = message.body
 			output_frame = []
-			print "got frame", len(task_frame)
+			# print "got frame", len(task_frame)
 			for task_key, task in task_frame:
 				try:
 					result = self.do_work(task[0])
@@ -125,6 +126,7 @@ class Worker(AbsAgent):
 					#print "message sent"
 				except Exception:
 					#print "error occured"
+					print traceback.format_exc()
 					error_str = u"task: <%s>\n%s.__handle_message__: \n%s"\
 								% (str(task),
 								   self.__class__.__name__,

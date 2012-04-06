@@ -5,6 +5,8 @@ from collector.workers import RiverFetcherAgent
 from collector.workers import LinkSpotterAgent
 from collector.workers import PageFetcherAgent
 from collector.workers import PageParserAgent
+from collector.workers import SocialStatAgent
+
 
 class RiverFetcher(AbsSupervisor):
 	name = "River Fetcher"
@@ -63,6 +65,22 @@ class PageParser(AbsSupervisor):
 	def __default_params__(self):
 		return (
 			("pool_size", 1),
+		),(
+			("bundle_key", "FORBES"),
+			("input_dataset", "EN.Forbes.invest"),
+			("output_dataset", "EN.Forbes.invest"),
+		)
+
+
+class SocialStat(AbsSupervisor):
+	name = "SM Probe Fetcher"
+
+	def __init__(self, address):
+		super(SocialStat, self).__init__(address, SocialStatAgent)
+
+	def __default_params__(self):
+		return (
+			("pool_size", 8),
 		),(
 			("bundle_key", "FORBES"),
 			("input_dataset", "EN.Forbes.invest"),

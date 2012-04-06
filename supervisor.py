@@ -121,11 +121,11 @@ class AbsSupervisor(AbsAgent, ISupervisor):
 						task_frame.append((task_key, new_task))
 						self.sent_tasks[task_key] = new_task
 					except StopIteration: break
-				print "task frame size", len(task_frame)
+				# print "task frame size", len(task_frame)
 				if task_frame:
 					address = worker_slot.agent.address
 					self.mailbox.send(task_frame, address, Message.TASK)
-					print "task frame send"
+					# print "task frame send"
 					worker_slot.status = Worker.Status.BUSY
 
 	def __stop_session__(self):

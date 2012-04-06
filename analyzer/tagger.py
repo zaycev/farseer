@@ -53,8 +53,6 @@ def make_tagger():
 		tagger_classes,
 		backoff=nltk.tag.RegexpTagger(word_patterns),
 	)
-	return raubt_tagger
-
 	templates = [
 		brill.SymmetricProximateTokensTemplate(brill.ProximateTagsRule, (1,1)),
 		brill.SymmetricProximateTokensTemplate(brill.ProximateTagsRule, (2,2)),
@@ -67,9 +65,6 @@ def make_tagger():
 		brill.ProximateTokensTemplate(brill.ProximateTagsRule, (-1, -1), (1,1)),
 		brill.ProximateTokensTemplate(brill.ProximateWordsRule, (-1, -1), (1,1)),
 	]
-
 	trainer = brill.FastBrillTaggerTrainer(raubt_tagger, templates)
 	braubt_tagger = trainer.train(train_sets, max_rules=100, min_score=3)
-
 	return braubt_tagger
-

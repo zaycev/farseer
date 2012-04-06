@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block page-title %}Farseer | News-Media Analytics{% endblock %}
+
+
+
+{% block page-content %}
+
+
+{%include "search/search_navbar.html" %}
+
+
+<br/><br/>
+
+
+
+<div class="row-fluid">
+	<div style="width:512px;margin: 0 auto 0 auto;">
+		<form action="/">
+		<div class="form-inline">
+			<div class="input-append">
+				<input	name="tx"
+						type="text"
+						value="{{ token.visible_name }}"
+						style="width:320px;"
+				/>
+				<button type="submit"
+						style="margin-left:-5px;"
+						class="btn">
+						Search for Associaions
+				</button>
+			</div>
+		</div>
+		</form>
+	</div>
+</div>
+
+
+<br/><br/><br/><br/>
+
+
+
+<div class="row-fluid">
+
+	<div class="span6">
+		A
+	</div>
+
+
+	<div class="span3">
+		B
+	</div>
+
+	{% if token.related %}
+	<div class="span3">
+		<h4>Related Terms:</h4>
+		<br/>
+		<ul>
+			{% for tk in token.related %}
+				<li style="margin: 0 0 8px 0;">
+					<a href='/?id={{ tk.id }}'>{{ tk.visible_name }}</a>
+					{% if tk.nertag %}
+						<span>
+							{{ tk.nertag }}
+						</span>
+					{% else %}
+						<span>
+							{{ tk.postag }}
+						</span>
+					{% endif %}
+				</li>
+			{% endfor %}
+		</ul>
+	</div>
+	{% endif %}
+
+</div>
+
+
+{% endblock %}
+
+
+
+
+
+{% block css %}
+{% endblock %}
+
+{% block js %}
+{% endblock %}
