@@ -19,30 +19,36 @@ def update_tfidf():
 	DSIZE = 50980
 	handled = 0
 
+	icursor = connection.cursor()
+	ocursor = connection.cursor()
+
 
 	for doc in docs:
 
-		tfidf_vec = compute_vec(doc["id"], DSIZE, tokens)
+		tfidf_vec = compute_vec(icursor, doc["id"], DSIZE, tokens)
 		handled += 1
 		# print doc.id, doc.title
 		# pprint_vec(tfidf_vec)
 
-		save_vec(doc["id"], tfidf_vec)
+		save_vec(ocursor, doc["id"], tfidf_vec)
 
-		if handled % 1000 == 0:
+		if handled % 256 == 0:
 			print "\t%s\t/\t%s" % (DSIZE, handled)
+
+
+	transaction.commit_unless_managed()
+	icursor.close()
+	ocursor.close()
 
 		# cursor = connection.cursor()
 		# for tid, fid, tfidf in nterms:
 		# 	cursor.execute("UPDATE search_sterm SET tfidf=%s WHERE document_id=%s AND token_id=%s AND field=%s;", [tfidf, ])
 
 
-def compute_vec(did, corpus_size, token_dict):
-	cursor = connection.cursor()
+def compute_vec(cursor, did, corpus_size, token_dict):
 	cursor.execute("SELECT token_id,field,freq FROM "\
 					"search_sterm WHERE document_id=%s;", (did,))
 	rows = cursor.fetchall()
-	cursor.close()
 	doc_size = sum([r[2] for r in rows])
 	terms = {}
 	for tid, fid, freq in rows:
@@ -85,14 +91,10 @@ def pprint_vec(vec):
 	print
 
 
-def save_vec(doc_id, vec):
-	cursor = connection.cursor()
+def save_vec(cursor, doc_id, vec):
 	for tid, tfidf in vec:
 		cursor.execute("INSERT INTO search_svector VALUES (%s,%s,%s);",
 				(doc_id, tid, tfidf))
-	cursor.close()
-	transaction.commit_unless_managed()
-
 
 
 
