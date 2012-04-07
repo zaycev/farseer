@@ -69,7 +69,7 @@
 			var q2 = $(this).text();
 			var q1 = "{{ token_text }}";
 
-			if (true) {//(!_loaded[q1+q2]) {
+			if (!_loaded[q1+q2]) {
 				_loaded[q1+q2] = 1;
 				var _this = $(this);
 				$.ajax({
@@ -89,13 +89,13 @@
 							);
 						});
 
-						/*_this.popover({
+						_this.popover({
 							title: "Popular stories",
 							trigger: "hover",
 							dellay: 2,
 							content: $(ul).html()
 						});
-						_this.popover('show')*/
+						_this.popover('show')
 					}
 				});
 			}
