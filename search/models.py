@@ -38,7 +38,7 @@ class SDocument(models.Model):
 		return SDocument.objects.extra(
 			where=["fts @@ to_tsquery('english',%s)"],
 			params=[re.sub(SDocument.re_empty, "|", "(%s)&(%s)" % (q1, q2))],
-		).order_by("?").values("id","url","title","vi")[0:8]
+		).order_by("-vi").values("id","url","title","vi")[0:8]
 
 class SToken(models.Model):
 	postag = models.CharField(max_length=64, null=True, blank=True,

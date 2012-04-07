@@ -64,7 +64,7 @@
 <script type="text/javascript">
 	$(function(){
 		var _loaded = {}
-		$(".search_popular ").bind("hover", function(){
+		$(".search_popular").bind("hover", function(){
 
 			var q2 = $(this).text();
 			var q1 = "{{ token_text }}";
@@ -88,11 +88,15 @@
 								$(document.createElement('li')).html("<a href='" + item.url + "'>" + item.title + "</a>")
 							);
 						});
+						
+						$(".search_popular")each(function(index, item){
+							$(item).popover("hide");
+						});
 
 						_this.popover({
 							title: "Popular stories",
 							trigger: "hover",
-							dellay: 2,
+							dellay: 2000,
 							content: $(ul).html()
 						});
 						_this.popover('show')
