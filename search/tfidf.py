@@ -87,7 +87,7 @@ def pprint_vec(vec):
 
 	for tid, tfidf in vec[0:16]:
 		token = SToken.objects.get(id=tid)
-		print "%s - %s" % (token.visible_name, tfidf)
+		print "%s - %s" % (token.visible_text, tfidf)
 	print
 
 

@@ -1,0 +1,104 @@
+<div class="fs-section">
+	<h3 class="fs-section-label">
+		Co-Occurrences
+	</h3>
+	<div class="fs-body">
+		<table class="table table-bordered table-condensed">
+			<tbody>
+
+
+			<tr>
+				<td class="fs-stripped">People</td>
+				<td style="text-align:center;">
+					{% for coo in cooccurrences.people %}
+						<a class="search_popular ner {{ coo.nertag }}" href="/?id={{ coo.id }}">{{ coo.text }}</a>{% if not forloop.last %},{% endif %}
+					{% endfor %}
+				</td>
+			</tr>
+
+
+			<tr>
+				<td class="fs-stripped">Businesses</td>
+				<td style="text-align:center;">
+					{% for coo in cooccurrences.orgs %}
+						<a class="search_popular ner {{ coo.nertag }}" href="/?id={{ coo.id }}">{{ coo.text }}</a>{% if not forloop.last %},{% endif %}
+					{% endfor %}
+				</td>
+			</tr>
+
+
+			<tr>
+				<td class="fs-stripped">Places</td>
+				<td style="text-align:center;">
+					{% for coo in cooccurrences.locations %}
+						<a class="search_popular ner {{ coo.nertag }}" href="/?id={{ coo.id }}">{{ coo.text }}</a>{% if not forloop.last %},{% endif %}
+					{% endfor %}
+				</td>
+			</tr>
+
+
+			<tr>
+				<td class="fs-stripped">Facilities</td>
+				<td style="text-align:center;">
+					{% for coo in cooccurrences.facilities %}
+						<a class="search_popular ner {{ coo.nertag }}" href="/?id={{ coo.id }}">{{ coo.text }}</a>{% if not forloop.last %},{% endif %}
+					{% endfor %}
+				</td>
+			</tr>
+
+			<tr>
+				<td class="fs-stripped">Other</td>
+				<td style="text-align:center;">
+					{% for coo in cooccurrences.other %}
+						<a class="search_popular" href="/?id={{ coo.id }}">{{ coo.text }}</a>{% if not forloop.last %},{% endif %}
+					{% endfor %}
+				</td>
+			</tr>
+
+
+			</tbody>
+		</table>
+	</div>
+</div>
+
+<script type="text/javascript">
+	$(function(){
+		var _loaded = {}
+		$(".search_popular ").bind("hover", function(){
+
+			var q2 = $(this).text();
+			var q1 = "{{ token_text }}";
+
+			if (!_loaded[q1+q2]) {
+				_loaded[q1+q2] = 1;
+				var _this = $(this);
+				$.ajax({
+					method:"GET",
+					url:"/apps/search/api/v0/sdocument/popular.json",
+					dataType:"json",
+					data:{
+						q1: q1,
+						q2: q2
+					},
+					success: function(data){
+						var ul = $(document.createElement('ul'));
+
+						$(data).each(function(index, item) {
+							ul.append(
+								$(document.createElement('li')).html("<a href='" + item.url + "'>" + item.title + "</a>")
+							);
+						});
+
+						_this.popover({
+							title: "Popular stories",
+							trigger: "hover",
+							dellay: 2,
+							content: $(ul).html()
+						});
+						_this.popover('show')
+					}
+				});
+			}
+		});
+	});
+</script>

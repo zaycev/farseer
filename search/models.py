@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from django.db import models
+
 import re
 
 
@@ -14,6 +15,7 @@ class SDocument(models.Model):
 	vi = models.IntegerField(null=False, blank=False)
 	co = models.IntegerField(null=False, blank=False)
 
+	re_empty = re.compile("\s+")
 	@staticmethod
 	def search_ids(query):
 		return SDocument.objects.extra(
@@ -29,6 +31,14 @@ class SDocument(models.Model):
 			params=[query],
 		).order_by("-vi")
 
+	@staticmethod
+	def search_popular(q1, q2):
+		q1 = q1.visible_text if isinstance(q1, SToken) else q1
+		q2 = q2.visible_text if isinstance(q2, SToken) else q2
+		return SDocument.objects.extra(
+			where=["fts @@ to_tsquery('english',%s)"],
+			params=[re.sub(SDocument.re_empty, "|", "%s %s" % (q1, q2))],
+		).order_by("?").values("id","url","title","vi")[0:8]
 
 class SToken(models.Model):
 	postag = models.CharField(max_length=64, null=True, blank=True,
@@ -44,13 +54,13 @@ class SToken(models.Model):
 	rfreq = models.FloatField(null=False, blank=False, db_index=True)
 
 	@property
-	def visible_name(self):
+	def visible_text(self):
 		if self.origin:
 			return self.origin
 		return self.text
 
 	def related(self):
-		return SToken.search(self.visible_name).exclude(id=self.id)[0:16]
+		return SToken.search(self.visible_text).exclude(id=self.id)[0:16]
 
 	re_empty = re.compile("\s+")
 	@staticmethod
@@ -68,18 +78,5 @@ class SToken(models.Model):
 	def __unicode__(self):
 		return u"<SToken(id=#%s, '%s')>"\
 			% (self.id, self.origin if self.origin else self.text)
-
-
-# class STerm(object):
-
-# 	pass
-
-	# def __init__(tid, did,)
-
-
-# class SVector(models.Model):
-
-	
-
 
 

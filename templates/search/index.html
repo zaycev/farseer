@@ -20,7 +20,7 @@
 			<div class="input-append">
 				<input	name="tx"
 						type="text"
-						value="{{ token.visible_name }}"
+						value="{{ token_text }}"
 						style="width:320px;"
 				/>
 				<button type="submit"
@@ -41,37 +41,38 @@
 
 <div class="row-fluid">
 
-	<div class="span6">
+	<div class="span2">
 		A
 	</div>
 
 
-	<div class="span3">
-		B
+	<div class="span8">
+		<div class="row-fluid">
+			{%  include "search/token_coo.html" %}
+		</div>
 	</div>
 
-	{% if token.related %}
-	<div class="span3">
-		<h4>Related Terms:</h4>
+	
+
+	{% if related %}
+	<div class="span2">
+		<h4>Syntactically similar:</h4>
 		<br/>
 		<ul>
-			{% for tk in token.related %}
+			{% for tk in related %}
 				<li style="margin: 0 0 8px 0;">
-					<a href='/?id={{ tk.id }}'>{{ tk.visible_name }}</a>
-					{% if tk.nertag %}
-						<span>
-							{{ tk.nertag }}
-						</span>
-					{% else %}
-						<span>
-							{{ tk.postag }}
-						</span>
-					{% endif %}
+					<a href='/?id={{ tk.id }}'>{{ tk.visible_text }}</a>
+{#					{% if tk.nertag %}#}
+{#						<span>#}
+{#							{{ tk.nertag }}#}
+{#						</span>#}
+{#					{% endif %}#}
 				</li>
 			{% endfor %}
 		</ul>
 	</div>
 	{% endif %}
+
 
 </div>
 
@@ -79,11 +80,13 @@
 {% endblock %}
 
 
-
-
-
 {% block css %}
+	<link href="/www/css/farseer.css" rel="stylesheet">
 {% endblock %}
-
 {% block js %}
+	<script src="/www/js/highcharts.js"></script>
+	<script src="/www/js/bootstrap-tooltip.js"></script>
+	<script src="/www/js/bootstrap-popover.js"></script>
+	<script src="/www/js/bootstrap-transition.js"></script>
+	<script src="/www/js/farseer.js"></script>
 {% endblock %}
