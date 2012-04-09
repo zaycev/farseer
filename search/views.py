@@ -28,7 +28,7 @@ def index(request):
 		"token": token,
 		"related": related,
 		"token_text": token.visible_text if token else tx_query,
-		"cooccurrences": SCooccurrence(token if token else tx_query),
+		"cooccurrences": SCooccurrence(token.visible_text if token else tx_query),
 	})
 
 

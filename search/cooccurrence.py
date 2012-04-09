@@ -7,10 +7,17 @@ from search.models import SToken
 class SCooccurrence(object):
 
 	def __init__(self, token, max_coo=128):
+		self.text = token.lower()
 		self.__coo_list = coocurences(token)[0:max_coo]
 
+	@property
+	def coo_list(self):
+		for row in self.__coo_list:
+			if self.text != row[1].lower():
+				yield  row
+
 	def other(self):
-		for coo in self.__coo_list:
+		for coo in self.coo_list:
 			if not self._is_person_(coo)\
 			and not self._is_location_(coo)\
 			and not self._is_org_(coo)\
@@ -18,22 +25,22 @@ class SCooccurrence(object):
 				yield self._wrap_(coo)
 
 	def people(self):
-		for coo in self.__coo_list:
+		for coo in self.coo_list:
 			if self._is_person_(coo):
 				yield self._wrap_(coo)
 
 	def orgs(self):
-		for coo in self.__coo_list:
+		for coo in self.coo_list:
 			if self._is_org_(coo):
 				yield self._wrap_(coo)
 
 	def locations(self):
-		for coo in self.__coo_list:
+		for coo in self.coo_list:
 			if self._is_location_(coo):
 				yield self._wrap_(coo)
 
 	def facilities(self):
-		for coo in self.__coo_list:
+		for coo in self.coo_list:
 			if self._is_facility_(coo):
 				yield self._wrap_(coo)
 
@@ -76,9 +83,11 @@ FROM 	search_svector as t1,
 		search_sdocument as t2,
 		search_stoken as t3
 WHERE t1.document_id IN
-	(SELECT id FROM search_sdocument
+	(SELECT id FROM
+	(SELECT id, ts_rank_cd(fts, plainto_tsquery('english', %s), 32) as rank
+	FROM search_sdocument
 	WHERE fts @@ plainto_tsquery('english',%s)
-	ORDER BY vi DESC LIMIT 128)
+	ORDER BY rank DESC, vi DESC LIMIT 128) as ranked)
 	AND t1.document_id = t2.id
 	AND t1.token_id = t3.id
 ORDER BY tid, vi;"""
@@ -89,7 +98,7 @@ def coocurences(query):
 		#documents = SDocument
 
 	cursor = connection.cursor()
-	cursor.execute(SQL, (query,))
+	cursor.execute(SQL, (query, query))
 	rows = cursor.fetchall()
 	cursor.close()
 
