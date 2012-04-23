@@ -6,7 +6,7 @@
 {% block page-content %}
 
 
-{%include "search/search_navbar.html" %}
+{# {%include "search/search_navbar.html" %} #}
 
 
 <br/><br/>
@@ -26,7 +26,7 @@
 				<button type="submit"
 						style="margin-left:-5px;"
 						class="btn">
-						Search for Associaions
+						Search for Associacions
 				</button>
 			</div>
 		</div>
@@ -35,43 +35,44 @@
 </div>
 
 
-<br/><br/><br/><br/>
+<br/>
 
 
 
 <div class="row-fluid">
 
-	<div class="span2">
-		A
-	</div>
+{#	<div class="span2">#}
+{#		A#}
+{#	</div>#}
 
-
-	<div class="span8">
+	{% if token_text %}
+	<div class="span12">
 		<div class="row-fluid">
 			{%  include "search/token_coo.html" %}
 		</div>
 	</div>
+	{% endif %}
 
 	
 
-	{% if related %}
-	<div class="span2">
-		<h4>Syntactically similar:</h4>
-		<br/>
-		<ul>
-			{% for tk in related %}
-				<li style="margin: 0 0 8px 0;">
-					<a href='/?id={{ tk.id }}'>{{ tk.visible_text }}</a>
+{#	{% if related %}#}
+{#	<div class="span2">#}
+{#		<h4>Syntactically similar:</h4>#}
+{#		<br/>#}
+{#		<ul>#}
+{#			{% for tk in related %}#}
+{#				<li style="margin: 0 0 8px 0;">#}
+{#					<a href='/?id={{ tk.id }}'>{{ tk.visible_text }}</a>#}
 {#					{% if tk.nertag %}#}
 {#						<span>#}
 {#							{{ tk.nertag }}#}
 {#						</span>#}
 {#					{% endif %}#}
-				</li>
-			{% endfor %}
-		</ul>
-	</div>
-	{% endif %}
+{#				</li>#}
+{#			{% endfor %}#}
+{#		</ul>#}
+{#	</div>#}
+{#	{% endif %}#}
 
 
 </div>

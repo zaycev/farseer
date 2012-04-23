@@ -12,6 +12,10 @@ import json
 def index(request):
 	id_query = request.GET.get("id")
 	tx_query = request.GET.get("tx")
+
+	if not id_query and not tx_query:
+		return render_to_response("search/index.html",{})
+
 	if not id_query and not tx_query:
 		token = SToken.objects.get(id=496803)
 		related = token.related()

@@ -1,12 +1,25 @@
 <div class="fs-section">
 	<h3 class="fs-section-label">
-		Co-Occurrences
+		TOP K Associations
+	</h3>
+	<div class="fs-body">
+		{% for coo in cooccurrences.all %}
+			<a href="/?id={{ coo.id }}">{{ coo.text }}</a>{% if not forloop.last %},{% endif %}
+		{% endfor %}
+	</div>
+</div>
+
+<br/><br/><br/>
+
+<div class="fs-section">
+	<h3 class="fs-section-label">
+		TOP K Associations (Labeled)
 	</h3>
 	<div class="fs-body">
 		<table class="table table-bordered table-condensed">
 			<tbody>
 
-
+			{% if cooccurrences.people  %}
 			<tr>
 				<td class="fs-stripped">People</td>
 				<td style="text-align:center;">
@@ -15,8 +28,10 @@
 					{% endfor %}
 				</td>
 			</tr>
+			{% endif %}
 
 
+			{% if cooccurrences.orgs  %}
 			<tr>
 				<td class="fs-stripped">Businesses</td>
 				<td style="text-align:center;">
@@ -25,8 +40,9 @@
 					{% endfor %}
 				</td>
 			</tr>
+			{% endif %}
 
-
+			{% if cooccurrences.locations  %}
 			<tr>
 				<td class="fs-stripped">Places</td>
 				<td style="text-align:center;">
@@ -35,8 +51,9 @@
 					{% endfor %}
 				</td>
 			</tr>
+			{% endif %}
 
-
+			{% if cooccurrences.facilities  %}
 			<tr>
 				<td class="fs-stripped">Facilities</td>
 				<td style="text-align:center;">
@@ -45,7 +62,9 @@
 					{% endfor %}
 				</td>
 			</tr>
+			{% endif %}
 
+			{% if cooccurrences.other  %}
 			<tr>
 				<td class="fs-stripped">Other</td>
 				<td style="text-align:center;">
@@ -54,6 +73,7 @@
 					{% endfor %}
 				</td>
 			</tr>
+			{% endif %}
 
 
 			</tbody>
@@ -88,7 +108,7 @@
 								$(document.createElement('li')).html("<a href='" + item.url + "'>" + item.title + "</a>")
 							);
 						});
-						
+
 						$(".search_popular")each(function(index, item){
 							$(item).popover("hide");
 						});

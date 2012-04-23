@@ -5,7 +5,7 @@ from nltk import TreebankWordTokenizer
 from nltk.chunk import _MULTICLASS_NE_CHUNKER
 from nltk.tokenize import PunktSentenceTokenizer
 from nltk.data import load
-
+import nltk.tag
 
 import logging
 import pickle
@@ -97,6 +97,7 @@ def count_terms(text_set):
 	gc.collect()
 	return counter
 
+
 def count_voc_terms(doc_data):
 	doc_id, text_fields = doc_data
 	# maps (fid, text) -> {tkey: count}
@@ -114,6 +115,7 @@ def count_voc_terms(doc_data):
 				reduced_counter.append((tkey, tk[4]))
 		output.append((fid, reduced_counter,))
 	return (doc_id, output,)
+
 
 def make_term_key(text, postag, nertag):
 	return u"%s-%s-%s" % (str(nertag), str(postag), text)

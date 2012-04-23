@@ -6,7 +6,7 @@ from search.models import SToken
 
 class SCooccurrence(object):
 
-	def __init__(self, token, max_coo=128):
+	def __init__(self, token, max_coo=92):
 		self.text = token.lower()
 		self.__coo_list = coocurences(token)[0:max_coo]
 
@@ -15,6 +15,11 @@ class SCooccurrence(object):
 		for row in self.__coo_list:
 			if self.text != row[1].lower():
 				yield  row
+
+
+	def all(self):
+		for coo in self.coo_list:
+			yield self._wrap_(coo)
 
 	def other(self):
 		for coo in self.coo_list:
