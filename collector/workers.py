@@ -3,7 +3,7 @@
 import bundle
 from worker import Worker, TaskIO
 from collector.util import TextFetcher
-from collector.models import DataSet, RawRiver, Url, RawDocument
+from collector.models import DataSet, RawRiver, DocumentUrl, RawDocument
 from collector.models import Document, Author, Probe
 
 
@@ -90,7 +90,7 @@ class UrlSpotterWkr(Worker):
 		urls = self._bundle.spot_links(river_body)
 		extracted_urls = []
 		for url in urls:
-			extracted_url = Url(
+			extracted_url = DocumentUrl(
 				url = url,
 				source = self._input_source,
 				dataset = self._output_dataset,
@@ -125,7 +125,7 @@ class RawDocumentIO(TaskIO):
 	@staticmethod
 	def url_lazy_iter(id_list):
 		for new_id in id_list:
-			url = Url.objects.values("url").get(id=new_id)["url"]
+			url = DocumentUrl.objects.values("url").get(id=new_id)["url"]
 			yield url
 
 

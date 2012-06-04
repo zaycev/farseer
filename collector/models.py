@@ -51,10 +51,10 @@ class DataSet(models.Model):
 
 	@property
 	def rawdoc_percentage(self):
-		urlsc = self.extractedurl_set.count()
-		if urlsc:
+		urls = self.url_set.count()
+		if urls:
 			return float(self.rawdocument_set.count())\
-					/ urlsc * 100
+					/ urls * 100
 		return "?"
 
 	@property
@@ -75,7 +75,7 @@ class DataSet(models.Model):
 		}
 
 	def unfetched_rawdocs(self, input_dataset):
-		return Url.objects.extra(
+		return DocumentUrl.objects.extra(
 			where=["dataset_id=%s AND url NOT IN "
 				   "(SELECT url FROM collector_rawdocument "
 				   "WHERE dataset_id=%s)"],
@@ -129,7 +129,7 @@ class RawRiver(models.Model):
 												   self.timestamp)
 
 
-class Url(models.Model):
+class DocumentUrl(models.Model):
 	url = models.URLField(max_length=256, null=False, blank=False,
 		verify_exists=False, db_index=True)
 	dataset = models.ForeignKey(DataSet, rel_class=models.ManyToOneRel,
@@ -138,7 +138,7 @@ class Url(models.Model):
 		null=False)
 
 	def __unicode__(self):
-		return u"<Url(id='%s', url='%s', dataset='%s')>" \
+		return u"<DocumentUrl(id='%s', url='%s', dataset='%s')>" \
 				% (self.id, self.url, self.dataset.id)
 
 	class Meta:

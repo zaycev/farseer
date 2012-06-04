@@ -105,17 +105,14 @@ class Message(object):
 	FAIL = 6
 	TASK = 7
 	@property
-	def msg_type(self):
-		return self._msg_type
-	@property
 	def msg_types(self):
-		return self.msg_type_name(self._msg_type)
+		return self.msg_type_name(self.msg_type)
 
 	def __init__(self, sent_from, sent_to, body, msg_type):
-		self._sent_from = sent_from
-		self._sent_to = sent_to
-		self._body = body
-		self._msg_type = msg_type
+		self.sent_from = sent_from
+		self.sent_to = sent_to
+		self.body = body
+		self.msg_type = msg_type
 
 	@staticmethod
 	def msg_type_name(msg_type):
@@ -143,6 +140,10 @@ class Message(object):
 	def loads(string):
 		return pickle.loads(string)
 
+	def __repr__(self):
+		return u"<Message(%s, %s, %s, length=%d)>" \
+			   % (self.sent_from, self.sent_to, self.msg_types, len(self.body))
+
 
 
 class MailBox(object):
@@ -156,13 +157,13 @@ class MailBox(object):
 			self._tm = Timeout(max_iter=1024)
 			self._tm.set_latency(latency)
 
-	def send(self, message_body, to, mgs_type=Message.REGULAR):
+	def send(self, message_body, to, msg_type=Message.REGULAR):
 		if isinstance(to, MailBox):
 			to_address = to.address
 		else:
 			to_address = str(to)
 		message = Message(self.address, to_address, message_body,
-			msg_type=mgs_type)
+			msg_type=msg_type)
 		packed = message.dumps()
 		with self._lock:
 			self._conn.lpush(to_address, packed)
@@ -247,8 +248,8 @@ class AbsAgent(object):
 		self._tm = Timeout()
 		self._tm.set_latency(self._latency)
 
-	def send(self, message_body, send_from_mb, mgs_type=Message.REGULAR):
-		send_from_mb.send(message_body, self._address, mgs_type)
+	def send(self, message_body, send_from_mb, msg_type=Message.REGULAR):
+		send_from_mb.send(message_body, self._address, msg_type)
 
 	def __stop__(self):
 		self.terminate()
@@ -279,8 +280,10 @@ class AbsAgent(object):
 		for t in agent.tm:
 			message = agent.mailbox.pop_message()
 			if message:
-				if message.mgs_type == message.CALL\
-				or message.mgs_type == message.CAST:
+				print message
+				print message.msg_type
+				if message.msg_type == message.CALL\
+				or message.msg_type == message.CAST:
 					func = getattr(agent, message.body[0])
 					args = message.body[1]
 					try:
@@ -290,11 +293,11 @@ class AbsAgent(object):
 					except Exception:
 						traceback.print_exc()
 						agent.mailbox.send("", message.sent_from, Message.FAIL)
-				elif message.mgs_type == message.STOP:
+				elif message.msg_type == message.STOP:
 					if message.sent_from is not None:
 						agent.mailbox.send(("stop", "ok"), message.sent_from)
 						agent.__stop__()
-				elif message.mgs_type == message.PING:
+				elif message.msg_type == message.PING:
 					agent.mailbox.send("pong", message.sent_from)
 				else:
 					agent.__handle_message__(message)
@@ -366,8 +369,8 @@ class Agency(AbsAgent):
 		return address in self.agent_addresses
 
 	@staticmethod
-	def _send_agency(message_body, send_from_mb, mgs_type=Message.REGULAR):
-		send_from_mb.send(message_body, Agency.agency_address, mgs_type)
+	def _send_agency(message_body, send_from_mb, msg_type=Message.REGULAR):
+		send_from_mb.send(message_body, Agency.agency_address, msg_type)
 
 	@staticmethod
 	def _call_agency(func_name, args, send_from_mb):
@@ -392,7 +395,7 @@ class Agency(AbsAgent):
 
 	@staticmethod
 	def stop_all(send_from_mb):
-		Agency._send_agency(None, send_from_mb, mgs_type=Message.STOP)
+		Agency._send_agency(None, send_from_mb, msg_type=Message.STOP)
 
 	def __handle_message__(self, message, *args, **kwargs):
 		pass

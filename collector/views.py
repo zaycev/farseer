@@ -12,7 +12,7 @@ from collector.superv import PageFetcher
 from collector.superv import PageParser
 from collector.superv import SocialStat
 from collector.models import DataSet
-from collector.models import RawRiver, RawDocument, Url, Document
+from collector.models import RawRiver, RawDocument, DocumentUrl, Document
 from collections import OrderedDict
 from supervisor import read_supv_state
 
@@ -125,7 +125,7 @@ def model_list(request, format):
 		offset = request.GET.get("offset", 0)
 		ds = DataSet.objects.get(id=dataset_id)
 		if model == "eurl":
-			objs = Url.objects.filter(dataset=ds)\
+			objs = DocumentUrl.objects.filter(dataset=ds)\
 				.order_by("?").values("id","url")[offset:(limit + offset)]
 		else:
 			return HttpResponseNotFound("model %s doesn't exist" % model)
