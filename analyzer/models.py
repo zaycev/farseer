@@ -4,6 +4,8 @@ from django.db import models
 from collector.models import DataSet
 from collector.models import Document
 
+
+
 class Lexicon(models.Model):
 	dataset = models.ForeignKey(DataSet)
 	name = models.CharField(max_length=64, null=False, blank=False)
@@ -12,6 +14,7 @@ class Lexicon(models.Model):
 		db_index=True)
 
 	
+
 class Token(models.Model):
 	lexicon = models.ForeignKey(Lexicon, null=False, blank=False)
 	postag = models.CharField(max_length=64, null=True, blank=True,
@@ -31,11 +34,13 @@ class Token(models.Model):
 			% (self.id, self.text, self.postag, self.nertag)
 
 
+
 class StopWord(models.Model):
 	language = models.CharField(max_length=3, null=False, blank=False,
 		db_index=True)
-	word = models.CharField(max_length=256, null=False, blank=False,
+	text = models.CharField(max_length=256, null=False, blank=False,
 		db_index=True)
+
 
 
 class Term(models.Model):

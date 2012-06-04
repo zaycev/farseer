@@ -24,4 +24,8 @@
 *.settings
 *.tmproj
 *.idea
+*.sublime-project
+*.sublime-workspace
+*.pickle
+*.rdb
 bundle/test

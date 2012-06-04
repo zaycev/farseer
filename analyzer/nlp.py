@@ -16,19 +16,19 @@ UTIL = None
 VOCB = None
 
 
-class NlpUtil(object):
+class Nlp(object):
 
 	def __init__(self):
-		self.wrd_tokenizer = TreebankWordTokenizer()
-		self.snt_tokenizer = PunktSentenceTokenizer()
-		self.pos_tagger = pickle.load(open("tagger.pickle", "r"))
-		self.ner_tagger = load(_MULTICLASS_NE_CHUNKER)
+		self._wrd_tokenizer = TreebankWordTokenizer()
+		self._snt_tokenizer = PunktSentenceTokenizer()
+		self._pos_tagger = pickle.load(open("tagger.pickle", "r"))
+		self._ner_tagger = load(_MULTICLASS_NE_CHUNKER)
 
 	def wrd_tokenize(self, text):
-		return self.wrd_tokenizer.tokenize(text)
+		return self._wrd_tokenizer.tokenize(text)
 
 	def pos_tag(self, tokens):
-		tagged = self.pos_tagger.tag(tokens)
+		tagged = self._pos_tagger.tag(tokens)
 		new_tagged = []
 		for word, tag in tagged:
 			if tag is None:
@@ -38,10 +38,10 @@ class NlpUtil(object):
 		return new_tagged
 
 	def ner_tag(self, tagged_tokens):
-		return self.ner_tagger.parse(tagged_tokens)
+		return self._ner_tagger.parse(tagged_tokens)
 		
 	def tokenize(self, text):
-		snts = self.snt_tokenizer.tokenize(text)
+		snts = self._snt_tokenizer.tokenize(text)
 		for s in snts:
 			tokens = self.wrd_tokenize(s)
 			pos_tagged = self.pos_tag(tokens)
@@ -52,7 +52,7 @@ class NlpUtil(object):
 
 def make_util():
 	global UTIL
-	if not UTIL: UTIL = NlpUtil()
+	if not UTIL: UTIL = Nlp()
 	return UTIL
 
 

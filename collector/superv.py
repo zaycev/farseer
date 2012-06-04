@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 
 from supervisor import AbsSupervisor
-from collector.workers import RiverFetcherAgent
-from collector.workers import LinkSpotterAgent
-from collector.workers import PageFetcherAgent
-from collector.workers import PageParserAgent
-from collector.workers import SocialStatAgent
+from collector.workers import RiverFetcherWkr
+from collector.workers import UrlSpotterWkr
+from collector.workers import DocumentFetcherWkr
+from collector.workers import DocumentParserWkr
+from collector.workers import ProbeFetcher
 
 
 class RiverFetcher(AbsSupervisor):
 	name = "River Fetcher"
 
 	def __init__(self, address):
-		super(RiverFetcher, self).__init__(address, RiverFetcherAgent)
+		super(RiverFetcher, self).__init__(address, RiverFetcher)
 
 	def __default_params__(self):
 		return (
@@ -29,7 +29,7 @@ class LinkSpotter(AbsSupervisor):
 	name = "Link Spotter"
 
 	def __init__(self, address):
-		super(LinkSpotter, self).__init__(address, LinkSpotterAgent)
+		super(LinkSpotter, self).__init__(address, UrlSpotterWkr)
 
 	def __default_params__(self):
 		return (
@@ -45,7 +45,7 @@ class PageFetcher(AbsSupervisor):
 	name = "Page Fetcher"
 
 	def __init__(self, address):
-		super(PageFetcher, self).__init__(address, PageFetcherAgent)
+		super(PageFetcher, self).__init__(address, DocumentFetcherWkr)
 
 	def __default_params__(self):
 		return (
@@ -60,7 +60,7 @@ class PageParser(AbsSupervisor):
 	name = "Page Parser"
 
 	def __init__(self, address):
-		super(PageParser, self).__init__(address, PageParserAgent)
+		super(PageParser, self).__init__(address, DocumentParserWkr)
 
 	def __default_params__(self):
 		return (
@@ -76,7 +76,7 @@ class SocialStat(AbsSupervisor):
 	name = "SM Probe Fetcher"
 
 	def __init__(self, address):
-		super(SocialStat, self).__init__(address, SocialStatAgent)
+		super(SocialStat, self).__init__(address, ProbeFetcher)
 
 	def __default_params__(self):
 		return (

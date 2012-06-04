@@ -4,7 +4,7 @@ from django.db import models
 from django.db import connection
 from django.db.models import Min, Max
 
-import datetime
+
 
 class DocumentSource(models.Model):
 	name = models.CharField(max_length=128, null=False, blank=False)
@@ -19,16 +19,13 @@ class DocumentSource(models.Model):
 		return u"<DocumentSource('#%s', '%s')>" % (self.id, self.name)
 
 
+
 class DataSet(models.Model):
 	name = models.CharField(max_length=48, null=False, blank=False,
 		db_index=True, unique=True)
 	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False,
 		db_index=True)
-	summory = models.CharField(max_length=4096, null=True, blank=True)
-
-#	def save(self, *args, **kwargs):
-#		if not self.id:
-#			self.timestamp = datetime.datetime.now()
+	summary = models.CharField(max_length=4096, null=True, blank=True)
 
 	def __unicode__(self):
 		return u"<Dataset('#%s', '%s')>" % (self.id, self.name)
@@ -60,7 +57,6 @@ class DataSet(models.Model):
 					/ urlsc * 100
 		return "?"
 
-
 	@property
 	def rawdoc_mime_types(self):
 		for m in self.rawdocument_set.values("mime_type").distinct():
@@ -78,9 +74,8 @@ class DataSet(models.Model):
 			"to": max_date["timestamp__max"],
 		}
 
-
 	def unfetched_rawdocs(self, input_dataset):
-		return ExtractedUrl.objects.extra(
+		return Url.objects.extra(
 			where=["dataset_id=%s AND url NOT IN "
 				   "(SELECT url FROM collector_rawdocument "
 				   "WHERE dataset_id=%s)"],
@@ -116,6 +111,7 @@ class DataSet(models.Model):
 		ordering = ("name",)
 
 
+
 class RawRiver(models.Model):
 	url = models.URLField(max_length=256, null=False, blank=False,
 		verify_exists=False)
@@ -128,16 +124,12 @@ class RawRiver(models.Model):
 	body = models.TextField(null=False, blank=False)
 	mime_type = models.CharField(max_length=32, null=False, blank=False)
 
-#	def save(self, *args, **kwargs):
-#		if not self.id:
-#			self.timestamp = datetime.datetime.now()
-
 	def __unicode__(self):
 		return u"<RawRiver('#%s', '%s', '%s')>" % (self.id, self.url,
 												   self.timestamp)
 
 
-class ExtractedUrl(models.Model):
+class Url(models.Model):
 	url = models.URLField(max_length=256, null=False, blank=False,
 		verify_exists=False, db_index=True)
 	dataset = models.ForeignKey(DataSet, rel_class=models.ManyToOneRel,
@@ -146,7 +138,7 @@ class ExtractedUrl(models.Model):
 		null=False)
 
 	def __unicode__(self):
-		return u"<ExtractedUrl(id='%s', url='%s', dataset='%s')>" \
+		return u"<Url(id='%s', url='%s', dataset='%s')>" \
 				% (self.id, self.url, self.dataset.id)
 
 	class Meta:
@@ -164,16 +156,13 @@ class RawDocument(models.Model):
 	mime_type = models.CharField(max_length=32, null=False, blank=False,
 		default="text/html")
 
-#	def save(self, *args, **kwargs):
-#		if not self.id:
-#			self.timestamp = datetime.datetime.now()
-
 	def __unicode__(self):
-		return u"<RawDocument('#%s', '%s', '%s')>" % (self.id, self.url,
-													  self.mime_type)
+		return u"<RawDocument('#%s', '%s', '%s')>" %\
+				(self.id, self.url, self.mime_type,)
 
 	class Meta:
 		unique_together = ("url", "dataset",)
+
 
 
 class Document(models.Model):
@@ -198,6 +187,7 @@ class Document(models.Model):
 		unique_together = ("url", "dataset",)
 
 
+
 class Author(models.Model):
 	url = models.URLField(primary_key=True, max_length=256, null=False,
 		blank=False, unique=True, verify_exists=False, db_index=True)
@@ -216,57 +206,8 @@ class Probe(models.Model):
 		null=False, db_index=True)
 	tag = models.CharField(max_length=4, null=False, blank=False)
 	signal = models.IntegerField(null=False, blank=False)
+	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False,
+		db_index=True)
 
 	class Meta:
-		unique_together = ("target", "dataset", "tag")
-
-
-	#class ProbeSource(models.Model):
-#	name = models.CharField(max_length=128, null=False, blank=False)
-#	symbol = models.CharField(max_length=16, null=False, blank=False,
-#		db_index=True)
-#	url = models.URLField(max_length=256, null=False, blank=False, unique=True,
-#		verify_exists=False)
-#
-#	def __unicode__(self):
-#		return u"<ProbeSource('#%s', '%s')>" % (self.id, self.name)
-#
-#
-#class ProbeTag(models.Model):
-#	source = models.ForeignKey(ProbeSource, rel_class=models.ManyToOneRel,
-#		null=False)
-#	symbol = models.CharField(max_length=16, null=False, blank=False,
-#		db_index=True)
-#	label = models.CharField(max_length=128, null=False, blank=False)
-#
-#	def __unicode__(self):
-#		return u"<ProbeTag('#%s', '%s', 'for %s')>" % (self.id, self.label,
-#													   self.source.name)
-#
-#
-#class Probe(models.Model):
-#	signal = models.IntegerField(null=False, blank=False, db_index=True)
-#	document = models.ForeignKey(Document, rel_class=models.ManyToOneRel,
-#		null=False, db_index=True)
-#	tag = models.ForeignKey(ProbeTag, rel_class=models.ManyToOneRel, null=False,
-#		db_index=True)
-#
-#	def __unicode__(self):
-#		return u"<Probe('#%s', 'from %s', '~ %s')>" % (self.id, self.tag.label,
-#													   self.signal)
-#
-#
-#class RawProbe(models.Model):
-#	url = models.URLField(max_length=256, null=False, blank=False, unique=True,
-#		verify_exists=False)
-#	source = models.ForeignKey(ProbeSource, rel_class=models.ManyToOneRel,
-#		null=False)
-#	document = models.ForeignKey(Document, rel_class=models.ManyToOneRel,
-#		null=False)
-#	timestamp = models.DateTimeField(auto_now_add=True, null=False, blank=False)
-#	body = models.TextField(null=False, blank=False)
-#	mime_type = models.CharField(max_length=32, null=False, blank=False)
-#
-#	def __unicode__(self):
-#		return u"<RawProbe('#%s', '%s', '%s')>" % (self.id, self.url,
-#												   self.timestamp)
+		unique_together = ("target", "dataset", "tag",)

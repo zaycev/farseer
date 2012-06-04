@@ -11,7 +11,7 @@ class TextDataFetcherTest(unittest.TestCase):
 	def test_init(self):
 		fetcher = TextFetcher()
 		self.assertEqual(type(fetcher), TextFetcher)
-		self.assertEqual(fetcher.encoding, "utf-8")
+		self.assertEqual(fetcher._encoding, "utf-8")
 
 	def test_fetch_text(self):
 		fetcher = TextFetcher()

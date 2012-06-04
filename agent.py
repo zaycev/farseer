@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import with_statement
-
 import multiprocessing
 import threading
 import time
@@ -10,22 +9,23 @@ import redis
 import random
 import logging
 import traceback
-
 from options import DATABASE_CONFIG
-from abc import ABCMeta
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
+
 
 
 ALPHABET = "abcdefghijklmnopqrstuvwxyz"\
 		   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"\
 		   "0123456789"
 AGENCY_WRAPPER = None
-
 KEY_LEN = 8
+
+
 
 def gen_key(length=KEY_LEN, alphabet=ALPHABET):
 	name = "".join(random.sample(alphabet, length))
 	return name
+
 
 
 def connection_pool():
@@ -34,6 +34,7 @@ def connection_pool():
 		port=DATABASE_CONFIG["redis"].get("port", 6379),
 		host=DATABASE_CONFIG["redis"].get("host", "127.0.0.1"),
 	)
+
 
 
 class Timeout(object):
@@ -46,50 +47,53 @@ class Timeout(object):
 		EXTRA_HIGH = 4
 
 	def __init__(self, initial=0.050, max=0.200, k=1.050, max_iter=None):
-		self.initial = initial
-		self.max = max
-		self.k = k
+		self._initial = initial
+		self._max = max
+		self._k = k
 		self.max_iter = max_iter
 		self.current = None
 		self.current_i = None
 
 	def reset(self):
-		self.current = self.initial
+		self.current = self._initial
 		self.current_i = 0
 
 	def set_latency(self, latency):
 		if latency is self.Latency.EXTRA_LOW:
-			self.initial = 0.010
-			self.max = 0.50
-			self.k = 1.030
+			self._initial = 0.010
+			self._max = 0.50
+			self._k = 1.030
 		elif latency is self.Latency.LOW:
-			self.initial = 0.025
-			self.max = 0.100
-			self.k = 1.050
+			self._initial = 0.025
+			self._max = 0.100
+			self._k = 1.050
 		elif latency is self.Latency.MEDIUM:
-			self.initial = 0.050
-			self.max = 0.150
-			self.k = 1.020
+			self._initial = 0.050
+			self._max = 0.150
+			self._k = 1.020
 		elif latency is self.Latency.HIGH:
-			self.initial = 0.100
-			self.max = .200
-			self.k = 1.030
+			self._initial = 0.100
+			self._max = .200
+			self._k = 1.030
 		elif latency is self.Latency.EXTRA_HIGH:
-			self.initial = 0.120
-			self.max = 0.500
-			self.k = 1.050
+			self._initial = 0.120
+			self._max = 0.500
+			self._k = 1.050
 
 	def __iter__(self):
 		self.reset()
 		while self.current_i < self.max_iter or not self.max_iter:
 			yield self.current
-			if self.current < self.max:
-				self.current *= self.k
+			if self.current < self._max:
+				self.current *= self._k
 			self.current_i += 1
 		raise StopIteration()
 
-class MailBoxException(Exception):
-	pass
+
+
+class MailBoxException(Exception): pass
+
+
 
 class Message(object):
 	REGULAR = 0
@@ -100,34 +104,36 @@ class Message(object):
 	DONE = 5
 	FAIL = 6
 	TASK = 7
-
-	def __init__(self, sent_from, sent_to, body, extra):
-		self.sent_from = sent_from
-		self.sent_to = sent_to
-		self.body = body
-		self.extra = extra
-
 	@property
-	def extras(self):
-		return self.extra_name(self.extra)
+	def msg_type(self):
+		return self._msg_type
+	@property
+	def msg_types(self):
+		return self.msg_type_name(self._msg_type)
+
+	def __init__(self, sent_from, sent_to, body, msg_type):
+		self._sent_from = sent_from
+		self._sent_to = sent_to
+		self._body = body
+		self._msg_type = msg_type
 
 	@staticmethod
-	def extra_name(extra):
-		if extra is Message.REGULAR:
+	def msg_type_name(msg_type):
+		if msg_type is Message.REGULAR:
 			return "REGULAR"
-		elif extra is Message.STOP:
+		elif msg_type is Message.STOP:
 			return "STOP"
-		elif extra is Message.PING:
+		elif msg_type is Message.PING:
 			return "PING"
-		elif extra is Message.CAST:
+		elif msg_type is Message.CAST:
 			return "CAST"
-		elif extra is Message.CALL:
+		elif msg_type is Message.CALL:
 			return "CALL"
-		elif extra is Message.DONE:
+		elif msg_type is Message.DONE:
 			return "DONE"
-		elif extra is Message.FAIL:
+		elif msg_type is Message.FAIL:
 			return "FAIL"
-		elif extra is Message.TASK:
+		elif msg_type is Message.TASK:
 			return "TASK"
 
 	def dumps(self):
@@ -138,36 +144,33 @@ class Message(object):
 		return pickle.loads(string)
 
 
+
 class MailBox(object):
+
 	def __init__(self, address, latency=Timeout.Latency.EXTRA_LOW):
-		self.lock = threading.RLock()
-		with self.lock:
+		self._lock = threading.RLock()
+		with self._lock:
 			self.address = str(address)
-			self.pool = connection_pool()
-			self.conn = redis.Redis(connection_pool=self.pool)
-			self.tm = Timeout(max_iter=1024)
-			self.tm.set_latency(latency)
+			self._pool = connection_pool()
+			self._conn = redis.Redis(connection_pool=self._pool)
+			self._tm = Timeout(max_iter=1024)
+			self._tm.set_latency(latency)
 
-	def flush(self):
-		with  self.lock:
-			self.conn.delete(self.address)
-
-	def send(self, message_body, to, extra=Message.REGULAR):
+	def send(self, message_body, to, mgs_type=Message.REGULAR):
 		if isinstance(to, MailBox):
 			to_address = to.address
 		else:
 			to_address = str(to)
-		message = Message(self.address, to_address, message_body, extra=extra)
+		message = Message(self.address, to_address, message_body,
+			msg_type=mgs_type)
 		packed = message.dumps()
-		with self.lock:
-			#print "try lpush %s" % to_address
-			self.conn.lpush(to_address, packed)
-			#print "ok, lpushed"
+		with self._lock:
+			self._conn.lpush(to_address, packed)
 
 	def pop_message(self):
-		with self.lock:
-			if self.conn.llen(self.address) > 0:
-				packed = self.conn.rpop(self.address)
+		with self._lock:
+			if self._conn.llen(self.address) > 0:
+				packed = self._conn.rpop(self.address)
 				return Message.loads(packed)
 		return None
 
@@ -178,8 +181,8 @@ class MailBox(object):
 			message = self.pop_message()
 
 	def __len__(self):
-		with self.lock:
-			size = self.conn.llen(self.address)
+		with self._lock:
+			size = self._conn.llen(self.address)
 		return size
 
 	def call(self, call_body, to):
@@ -189,88 +192,63 @@ class MailBox(object):
 			to_address = str(to)
 		call_address = "%s-%s" % (self.address, to_address)
 		message = Message(call_address, to_address, call_body,
-			extra=Message.CALL)
+			msg_type=Message.CALL)
 		packed = message.dumps()
 		response = None
-		with self.lock:
-			self.conn.lpush(to_address, packed)
-		for t in self.tm:
-			with self.lock:
-				response = self.conn.rpop(call_address)
+		with self._lock:
+			self._conn.lpush(to_address, packed)
+		for t in self._tm:
+			with self._lock:
+				response = self._conn.rpop(call_address)
 			if response: break
 			time.sleep(t)
-		with self.lock:
-			self.conn.delete(call_address)
+		with self._lock:
+			self._conn.delete(call_address)
 		if response:
 			return Message.loads(response)
 		raise MailBoxException("Timeout %s exceeded" % self.address)
 
+	def flush(self):
+		with  self._lock:
+			self._conn.delete(self.address)
+
 	def destroy(self):
-		with self.lock:
-			self.conn.delete(self.address)
+		with self._lock:
+			self._conn.delete(self.address)
+
 
 
 class AbsAgent(object):
 	__metaclass__ = ABCMeta
 	process = True
-
-	def __init__(self, address,latency=Timeout.Latency.MEDIUM):
-		self.__address = address
-		self.latency = latency
-		if self.process:
-			self.unit = multiprocessing\
-				.Process(target=self.__message_loop__, args=(self,))
-		else:
-			self.unit = threading\
-				.Thread(target=self.__message_loop__, args=(self,))
-#		self.unit.daemon = True
-		self.unit.start()
-
-	def __init_agent__(self):
-		self.mailbox = MailBox(self.address, self.latency)
-		self.tm = Timeout()
-		self.tm.set_latency(self.latency)
-
 	@property
 	def address(self):
-		return self.__address
+		return self._address
+	@property
+	def tm(self):
+		return self._tm
+	@property
+	def mailbox(self):
+		return self._mailbox
 
-	@staticmethod
-	def __message_loop__(agent):
-		agent.__init_agent__()
-		for t in agent.tm:
-			message = agent.mailbox.pop_message()
-			if message:
-				if message.extra == message.CALL\
-				or message.extra == message.CAST:
-					func = getattr(agent, message.body[0])
-					args = message.body[1]
-					try:
-						result = func(*args)
-						agent.mailbox.send(result, message.sent_from,
-							Message.DONE)
-					except Exception:
-						traceback.print_exc()
-						agent.mailbox.send("", message.sent_from, Message.FAIL)
-				elif message.extra == message.STOP:
-					if message.sent_from is not None:
-						agent.mailbox.send(("stop", "ok"), message.sent_from)
-						agent.__stop__()
-				elif message.extra == message.PING:
-					agent.mailbox.send("pong", message.sent_from)
-				else:
-					agent.__handle_message__(message)
-				agent.tm.reset()
-			else:
-				time.sleep(t)
-				#print "sleep"
-			agent.do_periodic_things()
+	def __init__(self, address,latency=Timeout.Latency.MEDIUM):
+		self._address = address
+		self._latency = latency
+		if self.process:
+			self._unit = multiprocessing\
+				.Process(target=self.__message_loop__, args=(self,))
+		else:
+			self._unit = threading\
+				.Thread(target=self.__message_loop__, args=(self,))
+		self._unit.start()
 
-	def do_periodic_things(self):
-		pass
+	def __init_agent__(self):
+		self._mailbox = MailBox(self._address, self._latency)
+		self._tm = Timeout()
+		self._tm.set_latency(self._latency)
 
-	def send(self, message_body, send_from_mb, extra=Message.REGULAR):
-		send_from_mb.send(message_body, self.address, extra)
+	def send(self, message_body, send_from_mb, mgs_type=Message.REGULAR):
+		send_from_mb.send(message_body, self._address, mgs_type)
 
 	def __stop__(self):
 		self.terminate()
@@ -281,7 +259,7 @@ class AbsAgent(object):
 
 	def call(self, func_name, args, send_from_mb):
 		message = (func_name, args)
-		response = send_from_mb.call(message, self.address)
+		response = send_from_mb.call(message, self._address)
 		return response.body
 
 	def cast(self, func_name, args, send_from_mb):
@@ -289,26 +267,59 @@ class AbsAgent(object):
 		self.send(message, send_from_mb, Message.CAST)
 
 	def terminate(self):
-		self.mailbox.destroy()
+		self._mailbox.destroy()
 
 	@abstractmethod
 	def __handle_message__(self, message, *args, **kwargs):
 		raise NotImplementedError("You should implement this method")
 
-	def __unicode__(self):
-		return u"<Agent(# %s)>" % self.address
+	@staticmethod
+	def __message_loop__(agent):
+		agent.__init_agent__()
+		for t in agent.tm:
+			message = agent.mailbox.pop_message()
+			if message:
+				if message.mgs_type == message.CALL\
+				or message.mgs_type == message.CAST:
+					func = getattr(agent, message.body[0])
+					args = message.body[1]
+					try:
+						result = func(*args)
+						agent.mailbox.send(result, message.sent_from,
+							Message.DONE)
+					except Exception:
+						traceback.print_exc()
+						agent.mailbox.send("", message.sent_from, Message.FAIL)
+				elif message.mgs_type == message.STOP:
+					if message.sent_from is not None:
+						agent.mailbox.send(("stop", "ok"), message.sent_from)
+						agent.__stop__()
+				elif message.mgs_type == message.PING:
+					agent.mailbox.send("pong", message.sent_from)
+				else:
+					agent.__handle_message__(message)
+				agent.tm.reset()
+			else:
+				time.sleep(t)
+			agent.do_periodic_things()
+
+	def do_periodic_things(self):
+		pass
+
 
 
 class AgentTracer(AbsAgent):
+
 	def ping(self, send_from_mb):
 		self.send(None, send_from_mb, Message.PING)
 
 	def __handle_message__(self, message, *args, **kwargs):
-		self.mailbox.send(("got", message.extras, message.body),
+		self._mailbox.send(("got", message.msg_type, message.body),
 			message.sent_from)
 
 	def sum(self, *args):
 		return sum(args)
+
 
 
 class Agency(AbsAgent):
@@ -318,7 +329,8 @@ class Agency(AbsAgent):
 	def __init__(self):
 		self.agent_addresses = None
 		self.call_back_address = gen_key()
-		super(Agency, self).__init__(Agency.agency_address, latency=Timeout.Latency.EXTRA_LOW)
+		super(Agency, self).__init__(Agency.agency_address,
+			latency=Timeout.Latency.EXTRA_LOW)
 		pool = connection_pool()
 		conn = redis.Redis(connection_pool=pool)
 		resp = conn.get(self.call_back_address)
@@ -334,9 +346,9 @@ class Agency(AbsAgent):
 
 	def __init_agent__(self):
 		super(Agency, self).__init_agent__()
-		if self.mailbox.conn.dbsize() > 0:
-			self.mailbox.conn.flushdb()
-		self.mailbox.conn.set(self.call_back_address, "SUCCESS")
+		if self._mailbox._conn.dbsize() > 0:
+			self._mailbox._conn.flushdb()
+		self._mailbox._conn.set(self.call_back_address, "SUCCESS")
 		self.agent_addresses = set()
 		self.counter = 1000
 
@@ -354,8 +366,8 @@ class Agency(AbsAgent):
 		return address in self.agent_addresses
 
 	@staticmethod
-	def _send_agency(message_body, send_from_mb, extra=Message.REGULAR):
-		send_from_mb.send(message_body, Agency.agency_address, extra)
+	def _send_agency(message_body, send_from_mb, mgs_type=Message.REGULAR):
+		send_from_mb.send(message_body, Agency.agency_address, mgs_type)
 
 	@staticmethod
 	def _call_agency(func_name, args, send_from_mb):
@@ -380,7 +392,7 @@ class Agency(AbsAgent):
 
 	@staticmethod
 	def stop_all(send_from_mb):
-		Agency._send_agency(None, send_from_mb, extra=Message.STOP)
+		Agency._send_agency(None, send_from_mb, mgs_type=Message.STOP)
 
 	def __handle_message__(self, message, *args, **kwargs):
 		pass
@@ -388,8 +400,9 @@ class Agency(AbsAgent):
 	def terminate(self):
 		logging.debug("AGENCY TERMINATED")
 		for address in self.agent_addresses:
-			self.mailbox.send(None, address, Message.STOP)
-		self.mailbox.destroy()
+			self._mailbox.send(None, address, Message.STOP)
+		self._mailbox.destroy()
+
 
 
 class AgencyWrapper(object):
@@ -411,6 +424,7 @@ class AgencyWrapper(object):
 		global AGENCY_WRAPPER
 		AGENCY_WRAPPER = None
 		Agency.stop_all(self.mb)
+
 
 
 def create_agency():
