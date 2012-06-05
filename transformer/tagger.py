@@ -16,10 +16,10 @@ def backoff_tagger(tagged_sents, tagger_classes, backoff=None):
 	return backoff
 
 def make_tagger():
-	brown_reviews = brown.tagged_sents(categories=['reviews'])[1000:]
-	brown_lore = brown.tagged_sents(categories=['lore'])[1000:]
-	conll_train = conll2000.tagged_sents('train.txt')[2000:]
-	treebank_train = treebank.tagged_sents()[2000:]
+	brown_reviews = brown.tagged_sents(categories=['reviews'])#[1000:]
+	brown_lore = brown.tagged_sents(categories=['lore'])#[1000:]
+	conll_train = conll2000.tagged_sents('train.txt')#[2000:]
+	treebank_train = treebank.tagged_sents()#[2000:]
 	train_sets = list(itertools.chain(
 		brown_reviews,
 		brown_lore,

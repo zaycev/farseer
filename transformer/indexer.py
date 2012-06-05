@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from multiprocessing import Pool
-from analyzer.nlp import count_voc_terms
-from analyzer.nlp import make_term_key
-from analyzer.nlp import make_vocab
+from transformer.nlp import count_voc_terms
+from transformer.nlp import make_term_key
+from transformer.nlp import make_vocab
 
-import analyzer.nlp as nlp
+import transformer.nlp as nlp
 import collector.models as cm
-import analyzer.models as am
+import transformer.models as am
 import django.db
 import datetime
 import logging

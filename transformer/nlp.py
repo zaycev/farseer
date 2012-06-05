@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from analyzer.tagger import make_tagger
+from transformer.tagger import make_tagger
 from nltk import TreebankWordTokenizer
 from nltk.chunk import _MULTICLASS_NE_CHUNKER
 from nltk.tokenize import PunktSentenceTokenizer

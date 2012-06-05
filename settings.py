@@ -88,7 +88,8 @@ INSTALLED_APPS = (
 	'django.contrib.messages',
 	'django.contrib.staticfiles',
 	"collector",
-	"analyzer",
+	"transformer",
+	"analytics",
 	"fortest",
 )
 

@@ -1,8 +1,8 @@
 from multiprocessing import Pool
-from analyzer.nlp import count_terms
+from transformer.nlp import count_terms
 
 import collector.models as cm
-import analyzer.models as am
+import transformer.models as am
 import django.db
 import datetime
 import logging
@@ -19,9 +19,9 @@ def make_lexicon(input_dataset, output_dataset=None, workers=4, buff_size=256,
 	if not output_dataset:
 		output_dataset = input_dataset
 	if max_docs:
-		documents = input_dataset.document_set.order_by("?")[0:max_docs]
+		documents = input_dataset.sample_set.order_by("?")[0:max_docs]
 	else:
-		documents = input_dataset.document_set.order_by("?")
+		documents = input_dataset.sample_set.order_by("?")
 
 	logging.debug("init workers pool")
 	pool = Pool(workers)
@@ -49,7 +49,8 @@ def make_lexicon(input_dataset, output_dataset=None, workers=4, buff_size=256,
 	for doc in documents.iterator():
 		
 		docs_handled += 1
-		text_set = (doc.title, doc.summary, doc.content,)
+		text_set = (doc.title, "", doc.content,)
+#		text_set = (doc.title, doc.summary, doc.content,)
 		text_buff.append(text_set)
 
 		if len(text_buff) > buff_size:

@@ -301,7 +301,7 @@ def print_log(log):
 
 def read_supv_state(mailbox, supv):
 	import pickle
-	state = mailbox.conn.get("@%s" % supv.address)
+	state = mailbox._conn.get("@%s" % supv.address)
 	if state:
 		return pickle.loads(state)
 	return None
