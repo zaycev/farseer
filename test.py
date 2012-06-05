@@ -16,20 +16,17 @@ except ImportError:
 					" run django-admin.py, passing it your "
 					"settings module.\n" % __file__)
 	sys.exit(1)
-
 import time
 import agent
-import logging
-
-from agent import Message
-from agent import MailBox
-from agent import AgentTracer
+from agent import Message, MailBox, AgentTracer
 from agent import create_agency, AgencyWrapper
+from worker import TestIOHelper, TestWorker
 
-from worker import TestIOHelper
-from worker import TestWorker
+
 
 TERMINATING_TIMEOUT = 0.3
+
+
 
 class AgencyTest(unittest.TestCase):
 
@@ -111,7 +108,7 @@ class MailBoxTest(unittest.TestCase):
 		self.assertEqual(received_message.sent_from, mb1.address)
 		self.assertEqual(received_message.sent_to, mb2.address)
 		self.assertEqual(received_message.body, body)
-		self.assertEqual(received_message.extra, Message.REGULAR)
+		self.assertEqual(received_message.msg_type, Message.REGULAR)
 		mb1.destroy()
 		mb2.destroy()
 
@@ -161,7 +158,7 @@ class AgentTracerTest(unittest.TestCase):
 		time.sleep(0.5)
 		received_messages = list(mb.messages())
 		self.assertEqual(received_messages[0].body,
-			("got", Message.msg_type_name(Message.REGULAR), body))
+			("got", Message.REGULAR, body))
 		self.assertEqual(received_messages[1].body, "pong")
 		self.assertEqual(received_messages[2].body, ("stop", "ok"))
 		self.assertFalse(a._unit.is_alive())
@@ -255,18 +252,21 @@ class WorkerTest(unittest.TestCase):
 		mb = MailBox(agency.alloc_address())
 		w_address = agency.alloc_address()
 		helper = TestWorker.make_task_io(params)
+		task_frame = []
 		for _ in xrange(0, T_COUNT):
-			t = helper.read_next_task()
+			task = helper.read_next_task()
+			task_frame.append(("task_key_%s" % _, task,))
 			#logging.debug("sent %s" % str(t))
-			mb.send(t, w_address, Message.TASK)
+		mb.send(task_frame, w_address, Message.TASK)
 		w = TestWorker(w_address, params)
 		T_HANDLED = 0
-		while T_HANDLED != T_COUNT:
+		while T_HANDLED != 1:
 			if mb._conn.llen(mb.address) > 0:
 				result = mb.pop_message()
 				T_HANDLED += 1
-				dresult = helper.deserialize(result.body).next()
-				#logging.debug("done %s %s %s"
+				dresult = helper.deserialize(result.body)
+#				print dresult.next()
+			#logging.debug("done %s %s %s"
 				#	% (str(T_HANDLED), dresult, result.body))
 			else:
 				time.sleep(0.1)

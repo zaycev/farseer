@@ -108,11 +108,14 @@ class Message(object):
 	def msg_types(self):
 		return self.msg_type_name(self.msg_type)
 
-	def __init__(self, sent_from, sent_to, body, msg_type):
-		self.sent_from = sent_from
-		self.sent_to = sent_to
-		self.body = body
-		self.msg_type = msg_type
+	def __init__(self, sent_from, sent_to, body="", msg_type=0):
+		with threading.RLock():
+			if not sent_from or not sent_to:
+				raise Exception("Message sent_from and sent_to cannot be None")
+			self.sent_from = sent_from if sent_from else ""
+			self.sent_to = sent_to if sent_to else ""
+			self.body = body
+			self.msg_type = msg_type
 
 	@staticmethod
 	def msg_type_name(msg_type):
@@ -134,7 +137,7 @@ class Message(object):
 			return "TASK"
 
 	def dumps(self):
-		return pickle.dumps(self, pickle.HIGHEST_PROTOCOL)
+		return pickle.dumps(self)
 
 	@staticmethod
 	def loads(string):
@@ -278,10 +281,9 @@ class AbsAgent(object):
 	def __message_loop__(agent):
 		agent.__init_agent__()
 		for t in agent.tm:
-			message = agent.mailbox.pop_message()
+			with agent._mailbox._lock:
+				message = agent.mailbox.pop_message()
 			if message:
-				print message
-				print message.msg_type
 				if message.msg_type == message.CALL\
 				or message.msg_type == message.CAST:
 					func = getattr(agent, message.body[0])
@@ -412,22 +414,21 @@ class AgencyWrapper(object):
 
 	def __init__(self):
 		Agency()
-		self.mb = MailBox("master")
+		self._mb = MailBox("master")
 
 	def alloc_address(self):
-		return Agency.alloc_address(self.mb)
+		return Agency.alloc_address(self._mb)
 
 	def free_address(self, address):
-		return Agency.free_address(address, self.mb)
+		return Agency.free_address(address, self._mb)
 
 	def addr_exists(self, address):
-		return Agency.addr_exists(address, self.mb)
+		return Agency.addr_exists(address, self._mb)
 
 	def stop_all(self):
 		global AGENCY_WRAPPER
 		AGENCY_WRAPPER = None
-		Agency.stop_all(self.mb)
-
+		Agency.stop_all(self._mb)
 
 
 def create_agency():

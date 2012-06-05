@@ -112,7 +112,7 @@ class Worker(AbsAgent):
 		pass
 
 	def __handle_message__(self, message, *args, **kwargs):
-		if message.extra is Message.TASK:
+		if message.msg_type is Message.TASK:
 			task_frame = message.body
 			output_frame = []
 			for task_key, task in task_frame:
@@ -130,10 +130,10 @@ class Worker(AbsAgent):
 			self._mailbox.send(output_frame, message.sent_from, Message.TASK)
 		else:
 			error_str = u"%s.__handle_message__" \
-						u"got wrong message type: %s %s"\
+						u"got wrong message type: <%s> %s"\
 						% (self.__class__.__name__,
-						   message.extra,
-						   message.msg_type_name(message.extra))
+						   message.msg_type,
+						   message.msg_types)
 			self._mailbox.send(error_str, message.sent_from, Message.FAIL)
 
 	def do_work(self, task):
