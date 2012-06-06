@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 
-from multiprocessing import Pool
-from transformer.nlp import count_voc_terms
-from transformer.nlp import make_term_key
-from transformer.nlp import make_vocab
-
+import gc
+import logging
+import datetime
 import transformer.nlp as nlp
 import collector.models as cm
-import transformer.models as am
-import django.db
-import datetime
-import logging
-import time
-import gc
+import transformer.models as tm
+import analytics.models as am
+from multiprocessing import Pool
+from transformer.nlp import count_voc_terms
+from transformer.nlp import make_vocab
+
+
 
 def index_dataset(input_dataset, lexicon, workers=4,
 	buff_size=256, max_docs=None):
@@ -21,8 +20,8 @@ def index_dataset(input_dataset, lexicon, workers=4,
 	logging.debug("start make index")
 	if not isinstance(input_dataset, cm.DataSet):
 		input_dataset = cm.DataSet.objects.get(id=input_dataset)
-	if not isinstance(lexicon, am.Lexicon):
-		lexicon = am.Lexicon.objects.get(id=lexicon)
+	if not isinstance(lexicon, tm.Lexicon):
+		lexicon = tm.Lexicon.objects.get(id=lexicon)
 	if max_docs:
 		documents = input_dataset.sample_set.order_by("?")[0:max_docs]
 	else:
@@ -30,7 +29,7 @@ def index_dataset(input_dataset, lexicon, workers=4,
 	doc_size = documents.count()
 
 	
-	vocab = make_vocab(am.Token.objects.filter(lexicon=lexicon))
+	vocab = make_vocab(tm.Token.objects.filter(lexicon=lexicon))
 	logging.debug("loaded %s tokens from lexicon" % len(vocab))
 
 
@@ -86,12 +85,12 @@ def save_terms(worker_output, doc_buff, vocab):
 			for tkey, tfreq in counter:
 				term = am.Term(
 					token = vocab[tkey],
-					document = doc_buff[doc_id],
+					sample = doc_buff[doc_id],
 					field = fid,
 					freq = tfreq,
 				)
 				terms.append(term)
-	am.Term.objects.bulk_create(terms)
+	tm.Term.objects.bulk_create(terms)
 
 
 

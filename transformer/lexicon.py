@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import gc
+import logging
+import datetime
+import collector.models as cm
+import transformer.models as tm
 from multiprocessing import Pool
 from transformer.nlp import count_terms
 
-import collector.models as cm
-import transformer.models as am
-import django.db
-import datetime
-import logging
-import time
-import gc
 
 
 def make_lexicon(input_dataset, output_dataset=None, workers=4, buff_size=256,
@@ -28,19 +26,18 @@ def make_lexicon(input_dataset, output_dataset=None, workers=4, buff_size=256,
 	logging.debug("init workers pool")
 	pool = Pool(workers)
 	text_buff = []
-	docs_handled = 0
 	term_dict = dict()
 
 
 	logging.debug("creating lexicon")
 	doc_size = documents.count()
-	lexicon, created = am.Lexicon.objects.get_or_create(name=lex_name,
+	lexicon, created = tm.Lexicon.objects.get_or_create(name=lex_name,
 		doc_size=doc_size, dataset=output_dataset)
 	lexicon.doc_size = doc_size
 	if not created:
 		lexicon.save()
 	else:
-		to_be_deleted = am.Token.objects.filter(lexicon=lexicon)
+		to_be_deleted = tm.Token.objects.filter(lexicon=lexicon)
 		logging.debug("remove %d old tokens" % to_be_deleted.count())
 		to_be_deleted.delete()
 
@@ -52,7 +49,6 @@ def make_lexicon(input_dataset, output_dataset=None, workers=4, buff_size=256,
 		
 		docs_handled += 1
 		text_set = (doc.title, "", doc.content,)
-#		text_set = (doc.title, doc.summary, doc.content,)
 		text_buff.append(text_set)
 
 		if len(text_buff) > buff_size:
@@ -73,7 +69,6 @@ def make_lexicon(input_dataset, output_dataset=None, workers=4, buff_size=256,
 	
 	counters = pool.map(count_terms, text_buff)
 	recount_terms(term_dict, counters)
-	text_buff = []
 	pool.close()
 	gc.collect()
 
@@ -81,7 +76,7 @@ def make_lexicon(input_dataset, output_dataset=None, workers=4, buff_size=256,
 	token_cache = []
 	logging.debug("saving %s terms" % len(term_dict))
 	for term, tag, nertag, origin, tfreq, dfreq in term_dict.itervalues():
-		t = am.Token(
+		t = tm.Token(
 			lexicon = lexicon,
 			postag = tag,
 			nertag = nertag,
@@ -93,13 +88,12 @@ def make_lexicon(input_dataset, output_dataset=None, workers=4, buff_size=256,
 		)
 		token_cache.append(t)
 		if len(token_cache) > rec_buff:
-			am.Token.objects.bulk_create(token_cache)
+			tm.Token.objects.bulk_create(token_cache)
 			logging.debug("%s terms flushed" % len(token_cache))
 			token_cache = []
 			gc.collect()
-	am.Token.objects.bulk_create(token_cache)
+	tm.Token.objects.bulk_create(token_cache)
 	logging.debug("%s terms flushed" % len(token_cache))
-	token_cache = []
 	gc.collect()
 
 	logging.debug("DONE")

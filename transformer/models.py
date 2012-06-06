@@ -2,7 +2,6 @@
 
 from django.db import models
 from collector.models import DataSet
-from collector.models import Document
 
 
 
@@ -40,14 +39,3 @@ class StopWord(models.Model):
 		db_index=True)
 	text = models.CharField(max_length=256, null=False, blank=False,
 		db_index=True)
-
-
-
-class Term(models.Model):
-	token = models.ForeignKey(Token, null=False, blank=False)
-	document = models.ForeignKey(Document, null=False, blank=False)
-	field = models.CharField(max_length=8, null=False, blank=False)
-	freq = models.IntegerField(null=False, blank=False)
-
-	class Meta:
-		unique_together = ("token", "field", "document")

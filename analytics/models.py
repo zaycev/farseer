@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from django.db import models
-from django.db import connection
-from django.db.models import Min, Max
 from collector.models import DataSet
+from transformer.models import Token
 
 
 
@@ -24,14 +23,14 @@ class Sample(models.Model):
 	views = models.IntegerField(null=False, db_index=True)
 	twits = models.IntegerField(null=False, db_index=True)
 	comms = models.IntegerField(null=False, db_index=True)
-	
-	# name = models.CharField(max_length=128, null=False, blank=False)
-	# key = models.CharField(max_length=16, null=False, blank=False,
-	# 	db_index=True)
-	# url = models.URLField(max_length=256, null=False, blank=False, unique=True,
-	# 	verify_exists=False)
-	# mime_type = models.CharField(max_length=32, null=False, blank=False,
-	# 	default="text/html")
-	# 
-	# def __unicode__(self):
-	# 	return u"<DocumentSource('#%s', '%s')>" % (self.id, self.name)
+
+
+
+class Term(models.Model):
+	token = models.ForeignKey(Token, null=False, blank=False)
+	sample = models.ForeignKey(Sample, null=False, blank=False)
+	field = models.CharField(max_length=8, null=False, blank=False)
+	freq = models.IntegerField(null=False, blank=False)
+
+	class Meta:
+		unique_together = ("token", "field", "sample")
