@@ -24,9 +24,9 @@ def index_dataset(input_dataset, lexicon, workers=4,
 	if not isinstance(lexicon, am.Lexicon):
 		lexicon = am.Lexicon.objects.get(id=lexicon)
 	if max_docs:
-		documents = input_dataset.document_set.order_by("?")[0:max_docs]
+		documents = input_dataset.sample_set.order_by("?")[0:max_docs]
 	else:
-		documents = input_dataset.document_set.order_by("?")
+		documents = input_dataset.sample_set.order_by("?")
 	doc_size = documents.count()
 
 	

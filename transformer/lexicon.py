@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from multiprocessing import Pool
 from transformer.nlp import count_terms
 
