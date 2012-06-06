@@ -44,7 +44,6 @@ def index_dataset(input_dataset, lexicon, workers=4,
 	for doc in documents.iterator():
 		
 		docs_handled += 1
-		# text_set = (doc.title, doc.summary, doc.content,)
 		text_set = (doc.id, (("T", doc.title), ("C", doc.content),))
 		text_buff.append(text_set)
 		docs_buff[doc.id] = doc
@@ -68,14 +67,14 @@ def index_dataset(input_dataset, lexicon, workers=4,
 	
 	output = pool.map(count_voc_terms, text_buff)
 	save_terms(output, docs_buff, vocab)
-	text_buff = None
-	doc_buff = None
 	pool.close()
 	gc.collect()
 
 
+
 def cache_vocab(vocab):
 	nlp.VOCB = vocab
+
 
 
 def save_terms(worker_output, doc_buff, vocab):
@@ -90,7 +89,7 @@ def save_terms(worker_output, doc_buff, vocab):
 					freq = tfreq,
 				)
 				terms.append(term)
-	tm.Term.objects.bulk_create(terms)
+	am.Term.objects.bulk_create(terms)
 
 
 
