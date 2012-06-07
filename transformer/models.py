@@ -27,6 +27,7 @@ class Token(models.Model):
 	tfreq = models.IntegerField(null=False, blank=False, db_index=True)
 	dfreq = models.IntegerField(null=False, blank=False, db_index=True)
 	rfreq = models.FloatField(null=False, blank=False, db_index=True)
+	ind = models.IntegerField(null=False, blank=False, db_index=True)
 
 	def __unicode__(self):
 		return u"<Token(id=#%s, '%s', '%s', '%s')>"\

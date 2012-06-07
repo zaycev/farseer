@@ -1,10 +1,19 @@
 # -*- coding: utf-8 -*-
 
+import pickle
+import numpy as np
 from django.db import models
 from collector.models import DataSet
 from transformer.models import Token
+from analytics.features import compute_vec
+from django.db import connection
 
+# from analytics.models import Sample
+# s = Sample.objects.get(id=14907)
+# s.to_feature_vector()
+# list(s.keywords())
 
+ICURSOR = connection.cursor()
 
 class Sample(models.Model):
 	id = models.IntegerField(primary_key=True)
@@ -23,6 +32,62 @@ class Sample(models.Model):
 	views = models.IntegerField(null=False, db_index=True)
 	twits = models.IntegerField(null=False, db_index=True)
 	comms = models.IntegerField(null=False, db_index=True)
+	base_size = 18063
+	fmap = None
+	
+	def keywords(self, tokens=None):
+		if not tokens:
+			tokens = {t.id:t for t in Token.objects.all()}
+		tfidf = compute_vec(ICURSOR, self.id,
+							Sample.objects.all().count(), tokens)
+		tfidf.sort(key=lambda x: x[1])
+		tfidf.reverse()
+		for token_id, token_tfidf in tfidf:
+			yield Token.objects.get(id=token_id).text, token_tfidf
+
+	def to_feature_vector(self, tokens=None):
+		if not tokens:
+			tokens = {t.id:t for t in Token.objects.all()}
+		
+		tfidf = compute_vec(ICURSOR, self.id,
+							Sample.objects.all().count(), tokens)
+		
+		
+		features = np.zeros(5 + self.base_size, dtype=np.float32)
+		for position, value in tfidf:
+			features[position] = value
+		features[self.base_size + 0] = self.year
+		features[self.base_size + 1] = self.month
+		features[self.base_size + 2] = self.day
+		features[self.base_size + 3] = self.dow
+		features[self.base_size + 4] = self.day_id
+		
+		if self.fmap:
+			fmap = np.zeros(len(self.fmap), dtype=np.float32)
+			for i in xrange(len(self.fmap)):
+				fmap[i] = features[self.fmap[i]]
+			return fmap
+		else:
+			return features
+		
+	def response(self):
+		return np.array([self.views, self.twits,
+						self.comms], dtype=np.float32)
+	
+	def class_label(self):
+		if self.twits < 30:
+			return 0
+		elif self.twits >= 30 and self.twits < 100:
+			return 1
+		elif self.twits >= 100 and self.twits < 500:
+			return 2
+		return 3
+		
+	@staticmethod
+	def set_fmap(fmap=None, fmap_file="fmap.pickle"):
+		if not fmap:
+			fmap = pickle.loads(open(fmap_file, "r").read())
+		Sample.fmap = fmap
 
 
 
