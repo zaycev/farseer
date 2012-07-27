@@ -4,11 +4,11 @@ Farseer Project
 
 Description
 -----------
-A toolset for web news topics analysis and social signals prediction. Includes such instruments as:
+A toolset for web news text analysis and social signals prediction. Includes such instruments as:
 
-* Multithread data collector for getting source data from news web sits and social services.
-* HTML to text and text to TFIDF model convertor.
-* Scripts for building, optimizing and testing regression models which predicts social signals (such as page-views, number of likes or retwitts) from news page textxs.
+* Multithread actor model driven data collector for getting source data from news web sites and social services.
+* HTML to structured text and text to TFIDF model convertor.
+* Python scripts for building, optimizing and testing regression models which predicts social signals (such as page-views, number of likes or retwitts) from news pages text.
 * Some basic web GUI.
 
 
