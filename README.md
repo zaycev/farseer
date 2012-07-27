@@ -9,6 +9,7 @@ A toolset for web news topics analysis and social signals prediction. Includes s
 * Multithread data collector for getting source data from news web sits and social services.
 * HTML to text and text to TFIDF model convertor.
 * Scripts for building, optimizing and testing regression models which predicts social signals (such as page-views, number of likes or retwitts) from news page textxs.
+* Some basic web GUI.
 
 
 Contributors
@@ -21,11 +22,11 @@ Depencies
 ---------
 
 * Python 2.7.x
-* python-redis: [pypi.python.org/pypi/redis](http://pypi.python.org/pypi/redis/)
-* django: [djangoproject.com](https://www.djangoproject.com/)
 * lxml: [xml.de](http://xml.de/)
 * sklearn: [scikit-learn.org](http://scikit-learn.org/)
 * nltk: [nltk.org](http://nltk.org/)
+* python-redis: [pypi.python.org/pypi/redis](http://pypi.python.org/pypi/redis/)
+* django: [djangoproject.com](https://www.djangoproject.com/)
 
 References
 ----------
