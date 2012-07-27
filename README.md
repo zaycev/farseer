@@ -30,7 +30,7 @@ Depencies
 References
 ----------
 
-* Project poster (UC Berkeley stat 132, summer 2012): [PNG](http://zvm.me/s/uploads/farseer.png), [PDF](http://zvm.me/s/uploads/farseer.pdf) (6 MB)
+* Project poster (UC Berkeley stat 132, summer 2011): [PNG](http://zvm.me/s/uploads/farseer.png), [PDF](http://zvm.me/s/uploads/farseer.pdf) (6 MB)
 * Slides: [PDF](http://zvm.me/s/uploads/thesis-slides.pdf) [RU]
 * Thesis: [PDF](http://zvm.me/s/uploads/thesis-text.pdf) [RU]
 
