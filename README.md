@@ -1,46 +1,40 @@
 Farseer Project
 ===============
 
+
 Description
 -----------
+A toolset for web news topics analysis and social signals prediction. Includes such instruments as:
+
+* Multithread data collector for getting source data from news web sits and social services.
+* HTML to text and text to TFIDF model convertor.
+* Scripts for building, optimizing and testing regression models which predicts social signals (such as page-views, number of likes or retwitts) from news page textxs.
 
 
 Contributors
 ------------
-1. Vladimir Zaytsev [<vladimir@zvm.me>](mailto:vladimir@zvm.me)
+1. Vladimir Zaytsev [<zaytsev@usc.edu>](mailto:zaytsev@usc.edu) (July 2011 - June 2012)
+2. Pablo Paredes [<paredes@eecs.berkeley.edu>](mailto:paredes@eecs.berkeley.edu) July 2011 - August 2011
+
 
 Depencies
 ---------
+
 * Python 2.7.x
-
-* python-protobuf: [code.google.com/p/protobuf](http://code.google.com/p/protobuf/)
-
 * python-redis: [pypi.python.org/pypi/redis](http://pypi.python.org/pypi/redis/)
+* django: [djangoproject.com](https://www.djangoproject.com/)
+* lxml: [xml.de](http://xml.de/)
+* sklearn: [scikit-learn.org](http://scikit-learn.org/)
+* nltk: [nltk.org](http://nltk.org/)
 
-* python-psycopg2: [pypi.python.org/pypi/psycopg2](http://pypi.python.org/pypi/psycopg2/)
+References
+----------
 
-* python-django: [djangoproject.com](https://www.djangoproject.com/)
+* Project poster (UC Berkeley stat 132, summer 2012): [PNG](http://zvm.me/s/uploads/farseer.png), [PDF](http://zvm.me/s/uploads/farseer.pdf) (6 MB)
+* Slides: [PDF](http://zvm.me/s/uploads/thesis-slides.pdf) [RU]
+* Thesis: [PDF](http://zvm.me/s/uploads/thesis-text.pdf) [RU]
 
-* python-sqlalchemy: [sqlalchemy.org](www.sqlalchemy.org/)
+TODO
+----
 
-* python-lxml: [xml.de](http://xml.de/)
-
-Commands
---------
-1. run data collector:
-
-	`python run.py collecor`
-	
-2. run lexicon builder:
-
-	`python run.py analyzer`
-	
-3. run feature selection :
-	
-	`python run.py selection`
-
-4. run django web-ui front-end:
-
-	`python manage.py syncdb`
-	
-	`python manage.py runserver <ip-address>:<port>`
+* write documentation
